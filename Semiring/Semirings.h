@@ -2,6 +2,6 @@
 #define SEMIRINGS_H_
 
 #include "TropicalSemiring.h"	
-
+#include "Matrix.h"
 
 #endif
