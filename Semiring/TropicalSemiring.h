@@ -1,3 +1,6 @@
+#ifndef TROPICAL_SEMIRING_H_
+#define TROPICAL_SEMIRING_H_
+
 #include <algorithm>
 #include <limits>
 #include <iostream>
@@ -56,3 +59,5 @@ namespace Semiring
 	};
 
 }
+
+#endif 
