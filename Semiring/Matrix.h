@@ -25,6 +25,44 @@ namespace Semiring
 			return data[a][b];
 		}
 
+		inline friend bool operator==(const Matrix<T,R,C>& lhs, const Matrix<T,R,C>& rhs) 
+		{
+			for (int i = 0; i < R; i++)
+			{
+				for (int j = 0; j < C; j++)
+				{
+					if (lhs.data[i][j] != rhs.data[i][j])
+						return false;
+				}
+			}
+			return true;
+		}
+
+		inline friend bool operator!=(const Matrix<T,R,C>& lhs, const Matrix<T,R,C>& rhs) 
+		{
+			return !(lhs == rhs);
+		}
+
+		inline friend bool operator<=(const Matrix<T,R,C>& lhs, const Matrix<T,R,C>& rhs)
+		{
+			return (lhs == (lhs + rhs));
+		}
+
+		inline friend bool operator>=(const Matrix<T,R,C>& lhs, const Matrix<T,R,C>& rhs)
+		{
+			return (rhs == (lhs + rhs));
+		}
+
+		inline friend bool operator<(const Matrix<T,R,C>& lhs, const Matrix<T,R,C>& rhs)
+		{
+			return (lhs <= rhs) && (lhs != rhs);
+		}
+
+		inline friend bool operator>(const Matrix<T,R,C>& lhs, const Matrix<T,R,C>& rhs)
+		{
+			return (lhs >= rhs) && (lhs != rhs);
+		}
+
 		const Matrix<T,R,C> operator+ (const Matrix<T,R,C>& rhs) const
 		{
 			Matrix<T,R,C> m;
@@ -83,17 +121,22 @@ namespace Semiring
 
 		friend std::ostream& operator<<(std::ostream& os, const Matrix<T,R,C>& ts)
 		{
+			os << "{";
 			for (int i = 0; i < R; i++)
 			{
+				os << "{";
 				for (int j = 0; j < C; j++)
 				{
 					os << ts.data[i][j];
 					if (j != C - 1)
-						os << " ";
+						os << ", ";
 				}
+				os << "}";
 				if (i != R - 1)
-					os << "\n";
+					os << ",";
 			}
+
+			os << "}";
 			return os;
 		}
 

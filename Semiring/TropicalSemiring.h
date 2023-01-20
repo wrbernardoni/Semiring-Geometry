@@ -23,6 +23,36 @@ namespace Semiring
 			x = n;
 		}
 
+		inline friend bool operator==(const TropicalSemiring& lhs, const TropicalSemiring& rhs) 
+		{
+			return lhs.x == rhs.x;
+		}
+
+		inline friend bool operator!=(const TropicalSemiring& lhs, const TropicalSemiring& rhs) 
+		{
+			return !(lhs == rhs);
+		}
+
+		inline friend bool operator<=(const TropicalSemiring& lhs, const TropicalSemiring& rhs)
+		{
+			return (lhs == (lhs + rhs));
+		}
+
+		inline friend bool operator>=(const TropicalSemiring& lhs, const TropicalSemiring& rhs)
+		{
+			return (rhs == (lhs + rhs));
+		}
+
+		inline friend bool operator<(const TropicalSemiring& lhs, const TropicalSemiring& rhs)
+		{
+			return (lhs <= rhs) && (lhs != rhs);
+		}
+
+		inline friend bool operator>(const TropicalSemiring& lhs, const TropicalSemiring& rhs)
+		{
+			return (lhs >= rhs) && (lhs != rhs);
+		}
+
 		const TropicalSemiring operator+ (const TropicalSemiring& rhs) const
 		{
 
