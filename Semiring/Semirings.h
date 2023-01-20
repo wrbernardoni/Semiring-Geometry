@@ -5,5 +5,6 @@
 #include "TropicalSemiring.h"
 #include "ContactSemiring.h"
 #include "Matrix.h"
+#include "HopLimitedSemiring.h"
 
 #endif
