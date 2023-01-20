@@ -20,6 +20,17 @@ namespace Semiring
 			}
 		}
 
+		Matrix<T,R,C>(std::function<T(unsigned int, unsigned int)> n)
+		{
+			for (int i = 0; i < R; i++)
+			{
+				for (int j = 0; j < C; j++)
+				{
+					data[i][j] = n(i,j);
+				}
+			}
+		}
+
 		T& operator()(int a, int b)
 		{
 			return data[a][b];
