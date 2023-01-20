@@ -143,12 +143,20 @@ namespace Semiring
 		{
 			for (int i = 0; i <= L; i++)
 			{
-				os << "[" << i << "] : ";
+				bool added = false;
 				for (int j = 0; j <= (L-i); j++)
 				{
-					os << "(" << j << ") " << ts.x[i][j] << " ";
+					if (ts.x[i][j] != T::Zero())
+					{
+						if (!added)
+						{
+							added = true;
+							os << "[" << i << "] : ";
+						}
+						os << "(" << j << ") " << ts.x[i][j] << " ";
+					}
 				}
-				if (i != L)
+				if (i != L && added)
 					os << "\n";
 			}
 			// os << ts.x;
