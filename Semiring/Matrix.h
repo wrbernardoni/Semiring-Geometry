@@ -87,6 +87,16 @@ namespace Semiring
 			return m;
 		}
 
+		friend Matrix<T,R,C> operator+( const T& lhs, const Matrix<T,R,C>& rhs)
+		{
+			return lhs * Matrix<T,R,C>::One() + rhs;
+		}
+
+		friend Matrix<T,R,C> operator+( const Matrix<T,R,C>& lhs, const T& rhs)
+		{
+			return rhs * Matrix<T,R,C>::One() + lhs;
+		}
+
 		const Matrix<T,R,R> operator* (const Matrix<T,C,R>& rhs) const
 		{
 			Matrix<T,R,R> m;
@@ -108,14 +118,24 @@ namespace Semiring
 			{
 				for (int j = 0; j < C; j++)
 				{
-					m.data[i][j] = rhs * data[i][j];
+					m.data[i][j] = data[i][j] * rhs;
 				}
 			}
 			return m;
 		}
 		friend Matrix<T,R,C> operator*( const T& lhs, const Matrix<T,R,C>& rhs)
 		{
-			return rhs * lhs;
+			Matrix<T,R,C> m;
+			for (int i = 0; i < R; i++)
+			{
+				for (int j = 0; j < C; j++)
+				{
+					m.data[i][j] = lhs * rhs.data[i][j];
+				}
+			}
+			return m;
+
+			// return rhs * lhs;
 		}
 
 		Matrix<T,R,C>& operator= (const Matrix<T,R,C>& rhs)
