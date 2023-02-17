@@ -17,7 +17,7 @@ else
     CFLAGS += -pthread
 endif
 
-INCLUDES = -I. -ISemiring
+INCLUDES = -I. -ISemiring -IMonoid
 
 
 all: BuildPath TropicalDStar

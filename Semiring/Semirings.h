@@ -6,5 +6,6 @@
 #include "ContactSemiring.h"
 #include "Matrix.h"
 #include "HopLimitedSemiring.h"
+#include "FreeSemiring.h"
 
 #endif
