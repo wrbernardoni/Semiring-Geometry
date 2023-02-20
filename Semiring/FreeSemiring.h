@@ -6,18 +6,10 @@
 #include <string>
 #include <sstream>
 
+#include <SetUtilities.h>
 
 namespace Semiring
 {
-	template<typename T> class StreamHash {
-	public:
-	    size_t operator()(const T& p) const
-	    {
-	    	std::stringstream x;
-	    	x << p;
-	        return std::hash<std::string>()(x.str());
-	    }
-	};
 
 	// Constructs the free idempotent semiring on a monoid defined by T
 	// Just need T to be a unital monoid, so it needs T.One(), T.operator==, T.operator<<, and T.operator* defined
@@ -34,6 +26,11 @@ namespace Semiring
 		FreeIdempotentSemiring<T>(std::unordered_set<T, StreamHash<T>> n)
 		{
 			x = n;
+		}
+
+		FreeIdempotentSemiring<T>(T n)
+		{
+			x.insert(n);
 		}
 
 		inline friend bool operator==(const FreeIdempotentSemiring<T>& lhs, const FreeIdempotentSemiring<T>& rhs) 
@@ -137,7 +134,7 @@ namespace Semiring
 			return FreeIdempotentSemiring<T>(result);
 		}
 
-		std::unordered_set<T, StreamHash<T>>& getSet()
+		std::unordered_set<T, StreamHash<T>> getSet() const
 		{
 			return x;
 		}

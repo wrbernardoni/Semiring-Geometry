@@ -164,7 +164,7 @@ namespace Semiring
 				}
 				os << "}";
 				if (i != R - 1)
-					os << ",";
+					os << ";";
 			}
 
 			os << "}";

@@ -32,7 +32,7 @@ namespace Semiring
 		FreeMonoid<N>(unsigned int n)
 		{
 			label = [](unsigned int i)->std::string{ return (i != 0 ? std::to_string(i) : "-");};
-			if ((n > 0) && (n <= N))
+			if ((n > 0) && ((n <= N)||(N==0)))
 				x.push_back(n);
 		}
 
@@ -108,14 +108,19 @@ namespace Semiring
 			return x[a];
 		}
 
-		unsigned int size()
+		unsigned int at(int a) const
+		{
+			return x[a];
+		}
+
+		unsigned int size() const
 		{
 			return x.size();
 		}
 
 		void push_back(unsigned int n)
 		{
-			if ((n > 0) && (n <= N))
+			if ((n > 0) && ((n <= N)||(N==0)))
 			{
 				x.push_back(n);
 			}
