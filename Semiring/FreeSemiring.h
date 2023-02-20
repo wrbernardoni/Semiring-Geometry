@@ -136,6 +136,11 @@ namespace Semiring
 			result.insert(T::One());
 			return FreeIdempotentSemiring<T>(result);
 		}
+
+		std::unordered_set<T, StreamHash<T>>& getSet()
+		{
+			return x;
+		}
 	};
 
 }
