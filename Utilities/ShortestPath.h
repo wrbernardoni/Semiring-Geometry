@@ -173,49 +173,31 @@ namespace Semiring
 								std::cout << "\t\t\tComputing "<< C << " element choices (" << c + 1 << "/" << choices.size() << ") of " << bases.size() << " bases\r" << std::flush;
 							#endif
 							Semiring::FreeIdempotentSemiring<Semiring::FreeMonoid<0>> bU;
-							for (int k = 0; k < choices[c].size(); k++)
-							{
-								bU.insert(choices[c][k] + 1);
-							}
-							// if (C > 1)
-							// {
-							// 	bool redundant = false;
-							// 	for (int l = 0; l < usedBases.size(); l++)
-							// 	{
-							// 		if (bU <= usedBases[l])
-							// 		{
-							// 			redundant = true;
-							// 			break;
-							// 		}
-							// 	}
-							// 	if (redundant)
-							// 		continue;
-							// }
-
-							// Check for redundancy
-							std::unordered_set<Semiring::FreeMonoid<N * N>, StreamHash<Semiring::FreeMonoid<N * N>>> choice;
-							for (int k = 0; k < choices[c].size(); k++)
-							{
-								auto p = bases[choices[c][k]];
-								p.setLabel(dispL);
-								choice.insert(p);
-							}
 
 							// Check path attains cost
 							CostType bagCost = CostType::Zero();
-							for (auto itr = choice.begin(); itr != choice.end(); itr++)
+							std::unordered_set<Semiring::FreeMonoid<N * N>, StreamHash<Semiring::FreeMonoid<N * N>>> choice;
+							for (int k = 0; k < choices[c].size(); k++)
 							{
-								CostType pathCost = CostType::One();
-								for (int step = 0; step < (*itr).size(); step++)
+								bU.insert(choices[c][k] + 1);
+								auto p = bases[choices[c][k]];
+								p.setLabel(dispL);
+								if (choice.count(p) == 0)
 								{
-									if ((*itr).at(step) == 0)
-										continue;
-									int edge = (*itr).at(step) - 1;
-									int r = edge/N;
-									int c = edge%N;
-									pathCost = pathCost * costMatrix(r,c);
-								}
-								bagCost = bagCost + pathCost;
+									choice.insert(p);
+
+									CostType pathCost = CostType::One();
+									for (int step = 0; step < p.size(); step++)
+									{
+										if (p.at(step) == 0)
+											continue;
+										int edge = p.at(step) - 1;
+										int r = edge/N;
+										int c = edge%N;
+										pathCost = pathCost * costMatrix(r,c);
+									}
+									bagCost = bagCost + pathCost;
+								}	
 							}
 
 							if (bagCost == cMatrix(t,d))
