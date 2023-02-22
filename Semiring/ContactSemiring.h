@@ -6,6 +6,7 @@
 #include <iostream>
 #include <functional>
 #include <vector>
+#include <map>
 
 // #include <iostream>
 
@@ -14,55 +15,70 @@ namespace Semiring
 	template<typename T, unsigned int L = 1>  class ContactSemiring
 	{
 	protected:
-		std::vector<std::vector<T>> x;
+		std::map<unsigned int, std::map<unsigned int, T>> conv;
 
 	public:
 		ContactSemiring<T,L>()
 		{
-			// std::cout << "Here with " << L << std::endl;
-			for (int i = 0; i <= L; i++)
-			{
-				std::vector<T> row;
-				for (int j = 0; j <= (L-i); j++)
-				{
-					row.push_back(T::Zero());
-				}
-
-				x.push_back(row);
-			}
 		}
 
 		ContactSemiring<T,L>(std::function<T(unsigned int, unsigned int)> n)
 		{
 			for (int i = 0; i <= L; i++)
 			{
-				std::vector<T> row;
 				for (int j = 0; j <= (L-i); j++)
 				{
-					row.push_back(n(i,j));
+					T nu = n(i,j);
+					
+					if (nu != T::Zero())
+					{
+						conv[i][j] = nu;
+					}
 				}
-
-				x.push_back(row);
 			}
 		}
 
-		T& operator()(int t, int d)
+		T& operator()(unsigned int t, unsigned int d)
 		{
-			return x[t][d];
+			if (conv.count(t) != 0)
+			{
+				if (conv[t].count(d) != 0)
+				{
+					return conv[t][d];
+				}
+			}
+			
+			conv[t][d] = T::Zero();
+			return conv[t][d];
 		}
 
-		std::vector<T>& operator()(int t)
+		T at(unsigned int t, unsigned int d) const
 		{
-			return x[t];
+			if (conv.count(t) != 0)
+			{
+				if (conv.at(t).count(d) != 0)
+				{
+					T ret = conv.at(t).at(d);
+					return ret;
+				}
+			}
+
+			return T::Zero();
 		}
 
+		std::map<unsigned int, T>& operator()(int t)
+		{
+			return conv[t];
+		}
+
+		// TODO: Speed this up
 		inline friend bool operator==(const ContactSemiring<T,L>& lhs, const ContactSemiring<T,L>& rhs) 
 		{
 			for (int i = 0; i <= L; i++)
 			{
 				for (int j = 0; j <= (L-i); j++)
 				{
-					if (lhs.x[i][j] != rhs.x[i][j])
+					if (lhs.at(i,j) != rhs.at(i,j))
 						return false;
 				}
 			}
@@ -76,22 +92,70 @@ namespace Semiring
 
 		inline friend bool operator<=(const ContactSemiring<T,L>& lhs, const ContactSemiring<T,L>& rhs)
 		{
-			return (lhs == (lhs + rhs));
+			for (auto it = lhs.conv.begin(); it != lhs.conv.end(); it++)
+			{
+				if (rhs.conv.count(it->first) == 0)
+					return false;
+				for (auto it2 = it->second.begin(); it2 != it->second.end(); it++)
+				{
+					if (rhs.at(it->first, it2->first) > it2->second)
+					{
+						return false;
+					}
+				}
+			}
+			return true;
 		}
 
 		inline friend bool operator>=(const ContactSemiring<T,L>& lhs, const ContactSemiring<T,L>& rhs)
 		{
-			return (rhs == (lhs + rhs));
+			for (auto it = rhs.conv.begin(); it != rhs.conv.end(); it++)
+			{
+				if (lhs.conv.count(it->first) == 0)
+					return false;
+				for (auto it2 = it->second.begin(); it2 != it->second.end(); it++)
+				{
+					if (lhs.at(it->first, it2->first) < it2->second)
+					{
+						return false;
+					}
+				}
+			}
+			return true;
 		}
 
 		inline friend bool operator<(const ContactSemiring<T,L>& lhs, const ContactSemiring<T,L>& rhs)
 		{
-			return (lhs <= rhs) && (lhs != rhs);
+			for (auto it = lhs.conv.begin(); it != lhs.conv.end(); it++)
+			{
+				if (rhs.conv.count(it->first) == 0)
+					return false;
+				for (auto it2 = it->second.begin(); it2 != it->second.end(); it++)
+				{
+					if (rhs.at(it->first, it2->first) >= it2->second)
+					{
+						return false;
+					}
+				}
+			}
+			return true;
 		}
 
 		inline friend bool operator>(const ContactSemiring<T,L>& lhs, const ContactSemiring<T,L>& rhs)
 		{
-			return (lhs >= rhs) && (lhs != rhs);
+			for (auto it = rhs.conv.begin(); it != rhs.conv.end(); it++)
+			{
+				if (lhs.conv.count(it->first) == 0)
+					return false;
+				for (auto it2 = it->second.begin(); it2 != it->second.end(); it++)
+				{
+					if (lhs.at(it->first, it2->first) <= it2->second)
+					{
+						return false;
+					}
+				}
+			}
+			return true;
 		}
 
 		const ContactSemiring<T,L> operator+ (const ContactSemiring<T,L>& rhs) const
@@ -101,7 +165,9 @@ namespace Semiring
 			{
 				for (int j = 0; j <= (L-i); j++)
 				{
-					s(i,j) = x[i][j] + rhs.x[i][j];
+					T sum = at(i,j) + rhs.at(i,j);
+					if (sum != T::Zero())
+						s(i,j) = sum;
 				}
 			}
 			
@@ -112,14 +178,34 @@ namespace Semiring
 		{
 			ContactSemiring<T,L> s = ContactSemiring<T,L>();
 
-			for (int t = 0; t <= L; t++)
+			for (auto itT = conv.begin(); itT != conv.end(); itT++)
 			{
-				for (int d = 0; d <= (L-t); d++)
+				unsigned int t = itT->first;
+				for (auto itZ = itT->second.begin(); itZ != itT->second.end(); itZ++)
 				{
-					for (int z = 0; z <= d; z++)
+					unsigned int z = itZ->first;
+					if (itZ->second == T::Zero())
+						continue;
+					if (rhs.conv.count(t + z) == 0)
+						continue;
+					for (auto itD = rhs.conv.at(t + z).begin(); itD != rhs.conv.at(t + z).end(); itD++)
 					{
-						s(t,d) = s(t,d) +  rhs.x[t+z][d - z] * x[t][z];
+						unsigned int d = itD->first;
+						if (((d + z) > (L - t)))
+							continue;
+						if (itD->second == T::Zero())
+							continue;
+						T prod = itD->second * itZ->second;
+						s(t,d + z) = s(t,d + z) + prod;
 					}
+					// for (int d = z; d <= (L - t); d++)
+					// {
+					// 	if (rhs.at(t + z, d - z) != T::Zero())
+					// 	{
+					// 		T prod = rhs.at(t + z, d- z) * itZ->second;
+					// 		s(t,d) = s(t,d) + prod;
+					// 	}
+					// }
 				}
 			}
 
@@ -130,9 +216,11 @@ namespace Semiring
 		{
 			for (int i = 0; i <= L; i++)
 			{
+				conv[i].clear();
 				for (int j = 0; j <= (L-i); j++)
 				{
-					x[i][j] = rhs.x[i][j];
+					if (rhs.at(i,j) != T::Zero())
+						conv[i][j] = rhs.at(i,j);
 				}
 			}
 			// x = rhs.x;
@@ -146,14 +234,14 @@ namespace Semiring
 				bool added = false;
 				for (int j = 0; j <= (L-i); j++)
 				{
-					if (ts.x[i][j] != T::Zero())
+					if (ts.at(i,j) != T::Zero())
 					{
 						if (!added)
 						{
 							added = true;
 							os << "[" << i << "] : ";
 						}
-						os << "(" << j << ") " << ts.x[i][j] << " ";
+						os << "(" << j << ") " << ts.at(i,j) << " ";
 					}
 				}
 				if (i != L && added)
