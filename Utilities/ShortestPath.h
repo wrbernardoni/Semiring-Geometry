@@ -92,7 +92,7 @@ namespace Semiring
 	}
 
 	template<typename CostType, unsigned int N>
-	Semiring::Matrix<Semiring::FreeIdempotentSemiring<Semiring::FreeIdempotentSemiring<Semiring::FreeMonoid<N * N>>>,N,N> MinimalPaths(Semiring::Matrix<CostType,N,N> costMatrix, unsigned int max_steps)
+	Semiring::Matrix<Semiring::FreeIdempotentSemiring<Semiring::FreeIdempotentSemiring<Semiring::FreeMonoid<N * N>>>,N,N> MinimalPaths(Semiring::Matrix<CostType,N,N> costMatrix, unsigned int max_steps, CostType costPrepend = CostType::One())
 	{
 		#ifdef VERBOSE
 			std::cout << "\tSetting up path matrix" << std::endl;
@@ -125,10 +125,12 @@ namespace Semiring
 		Semiring::Matrix<CostType,N,N> costStep = costMatrix + Semiring::Matrix<CostType,N,N>::One();
 		pathMatrix =  pathMatrix + Semiring::Matrix<Semiring::FreeIdempotentSemiring<Semiring::FreeIdempotentSemiring<Semiring::FreeMonoid<N * N>>>,N,N>::One();
 		auto pathStep = pathMatrix;
-		auto cMatrix = costStep;
+		auto cMatrix = costPrepend * costStep;
 		#ifdef VERBOSE
 			std::cout << "\tMatrices created" << std::endl;
 		#endif
+
+		Semiring::Matrix<CostType,N,N> pCMatrix;
 
 		for (int i = 1; i <= max_steps; i++)
 		{
@@ -140,9 +142,20 @@ namespace Semiring
 			{
 				for (int d = 0; d < N; d++)
 				{
+					if ((cMatrix(t,d) == pCMatrix(t,d)) && (i > 1))
+						continue;
+
 					#ifdef VERBOSE
 						std::cout << "\t\t Reducing entry ("<< t << "," << d << ")" << std::endl;
 					#endif
+					if (cMatrix(t,d) == CostType::Zero())
+					{
+						#ifdef VERBOSE
+							std::cout << "\t\t\tNo available path" << std::endl;
+						#endif
+						pathMatrix(t,d) = Semiring::FreeIdempotentSemiring<Semiring::FreeIdempotentSemiring<Semiring::FreeMonoid<N * N>>>::Zero();
+						continue;
+					}
 					std::unordered_set<Semiring::FreeIdempotentSemiring<Semiring::FreeMonoid<N * N>>, StreamHash<Semiring::FreeIdempotentSemiring<Semiring::FreeMonoid<N * N>>>> availPaths;
 
 					auto opSet = pathMatrix(t,d).getSet();
@@ -158,6 +171,10 @@ namespace Semiring
 
 					for (int C = 1; C <= bases.size(); C++)
 					{
+						// Shortcutting to only find collections of minimal rank, remove this to find all
+						if (usedBases.size() != 0)
+							break;
+
 						#ifdef VERBOSE
 							std::cout << "\t\t\tComputing "<< C << " element choices of " << bases.size() << " bases\r" << std::flush;
 						#endif
@@ -186,7 +203,7 @@ namespace Semiring
 								{
 									choice.insert(p);
 
-									CostType pathCost = CostType::One();
+									CostType pathCost = costPrepend;
 									for (int step = 0; step < p.size(); step++)
 									{
 										if (p.at(step) == 0)
@@ -251,6 +268,7 @@ namespace Semiring
 					}
 				}
 			}
+			pCMatrix = cMatrix;
 			cMatrix = nC;
 			pathMatrix = nP;
 		}
