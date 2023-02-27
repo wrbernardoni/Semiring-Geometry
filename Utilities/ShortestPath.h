@@ -192,6 +192,10 @@ namespace Semiring
 
 					auto optCost = cMatrix(t,d);
 
+					#ifdef VERBOSE
+						std::cout << "\t\t\tComputing minimal bundles out of " << bases.size() << " bases" << std::endl;
+					#endif
+
 					auto minimalSubsets = MinimalSubsets(bses, [&baseCost, &optCost](std::unordered_set<Semiring::FreeMonoid<0>, StreamHash<Semiring::FreeMonoid<0>>> bundle){
 						CostType bagCost = CostType::Zero();
 						for (auto it = bundle.begin(); it != bundle.end(); it++)
@@ -201,6 +205,10 @@ namespace Semiring
 
 						return (bagCost == optCost);
 					});
+
+					#ifdef VERBOSE
+						std::cout << "\t\t\t" << minimalSubsets.size() << " minimal bundles found." << std::endl;
+					#endif
 
 					for (auto i = minimalSubsets.begin(); i < minimalSubsets.end(); i++)
 					{
