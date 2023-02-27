@@ -1,5 +1,5 @@
 CC = g++
-CFLAGS  = -o3 -fopenmp --std=c++17
+CFLAGS  = -o3 -fopenmp --std=c++20
 
 LDFLAGS=-lssl
 LDFLAGS+=-lcrypto

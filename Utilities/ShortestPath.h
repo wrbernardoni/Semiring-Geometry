@@ -164,9 +164,59 @@ namespace Semiring
 					{
 						aPaths = Semiring::Union(aPaths, itr->getSet());
 					}
-					std::vector<Semiring::FreeMonoid<N * N>> bases;
-					std::copy(aPaths.begin(), aPaths.end(), std::back_inserter(bases));
 
+					std::vector<Semiring::FreeMonoid<N * N>> bases;
+					std::vector<CostType> baseCost;
+					std::unordered_set<Semiring::FreeMonoid<0>, Semiring::StreamHash<Semiring::FreeMonoid<0>>> bses;
+					for (auto itr = aPaths.begin(); itr != aPaths.end(); itr++)
+					{
+
+						CostType pathCost = costPrepend;
+						for (int step = 0; step < (*itr).size(); step++)
+						{
+							if ((*itr).at(step) == 0)
+								continue;
+							int edge = (*itr).at(step) - 1;
+							int r = edge/N;
+							int c = edge%N;
+							pathCost = pathCost * costMatrix(r,c);
+						}
+
+						if (pathCost != CostType::Zero())
+						{
+							bases.push_back((*itr));
+							baseCost.push_back(pathCost);
+							bses.insert(Semiring::FreeMonoid<0>(bases.size()));
+						}
+					}
+
+					auto optCost = cMatrix(t,d);
+
+					auto minimalSubsets = MinimalSubsets(bses, [&baseCost, &optCost](std::unordered_set<Semiring::FreeMonoid<0>, StreamHash<Semiring::FreeMonoid<0>>> bundle){
+						CostType bagCost = CostType::Zero();
+						for (auto it = bundle.begin(); it != bundle.end(); it++)
+						{
+							bagCost = bagCost + baseCost[(*it).at(0) - 1];
+						}
+
+						return (bagCost == optCost);
+					});
+
+					for (auto i = minimalSubsets.begin(); i < minimalSubsets.end(); i++)
+					{
+						Semiring::FreeIdempotentSemiring<Semiring::FreeMonoid<N * N>> bundle;
+						
+						for (auto j = i->begin(); j != i->end(); j++)
+						{
+							auto p = bases[j->at(0) - 1];
+							p.setLabel(dispL);
+							bundle.insert(p);
+						}
+
+						availPaths.insert(bundle);
+					}
+
+					/*
 					std::vector<Semiring::FreeIdempotentSemiring<Semiring::FreeMonoid<0>>> usedBases;
 
 					for (int C = 1; C <= bases.size(); C++)
@@ -175,9 +225,6 @@ namespace Semiring
 						if (usedBases.size() != 0)
 							break;
 
-						#ifdef VERBOSE
-							std::cout << "\t\t\tComputing "<< C << " element choices of " << bases.size() << " bases\r" << std::flush;
-						#endif
 						// Number of choices
 						auto choices = ChoiceBuilder(bases.size(), C,0, Semiring::FreeIdempotentSemiring<Semiring::FreeMonoid<0>>(), usedBases);
 						#ifdef VERBOSE
@@ -187,7 +234,7 @@ namespace Semiring
 						for (int c = 0; c < choices.size(); c++)
 						{
 							#ifdef VERBOSE
-								std::cout << "\t\t\tComputing "<< C << " element choices (" << c + 1 << "/" << choices.size() << ") of " << bases.size() << " bases\r" << std::flush;
+								std::cout << "\t\t\tComputing "<< C << " element choices (" << c + 1 << "/" << choices.size() << ")[" << availPaths.size() <<"] of " << bases.size() << " bases\r" << std::flush;
 							#endif
 							Semiring::FreeIdempotentSemiring<Semiring::FreeMonoid<0>> bU;
 
@@ -198,22 +245,12 @@ namespace Semiring
 							{
 								bU.insert(choices[c][k] + 1);
 								auto p = bases[choices[c][k]];
+								auto pCost = baseCost[choices[c][k]];
 								p.setLabel(dispL);
 								if (choice.count(p) == 0)
 								{
 									choice.insert(p);
-
-									CostType pathCost = costPrepend;
-									for (int step = 0; step < p.size(); step++)
-									{
-										if (p.at(step) == 0)
-											continue;
-										int edge = p.at(step) - 1;
-										int r = edge/N;
-										int c = edge%N;
-										pathCost = pathCost * costMatrix(r,c);
-									}
-									bagCost = bagCost + pathCost;
+									bagCost = bagCost + pCost;
 								}	
 							}
 
@@ -222,12 +259,18 @@ namespace Semiring
 								availPaths.insert(Semiring::FreeIdempotentSemiring<Semiring::FreeMonoid<N * N>>(choice));
 								usedBases.push_back(bU);
 							}
+
+							#ifdef VERBOSE
+								std::cout << "\t\t\tComputing "<< C << " element choices (" << c + 1 << "/" << choices.size() << ")[" << availPaths.size() <<"] of " << bases.size() << " bases\r" << std::flush;
+							#endif
 						}
 					}
 					#ifdef VERBOSE
 						if (bases.size() > 0)
 							std::cout << std::endl;
 					#endif
+					*/
+
 
 					pathMatrix(t,d) = Semiring::FreeIdempotentSemiring<Semiring::FreeIdempotentSemiring<Semiring::FreeMonoid<N * N>>>(availPaths);
 				}
