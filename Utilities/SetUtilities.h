@@ -209,40 +209,27 @@ namespace Semiring
 		while (que.size() != 0)
 		{
 			std::unordered_set<S,StreamHash<S>> top = que.top();
-			// std::cout << "Checking set: ";
-			// PrintSet(top);
 
 			// See if there is a subset of top, not containing any minimals and not being contained in any dependents
 			//		Test that subset, if dependent add it to dependent list
 			//				if independent add it to queue
 			std::unordered_set<S,StreamHash<S>> subset = GenerateSubset(top, minimals, dependents);
-			// std::cout << "Generated subset: ";
-			// PrintSet(subset);
 			if (subset.size() != 0)
 			{
 				if(oracle(subset))
 				{
-					// std::cout << "Subset has property" << std::endl;
 					que.push(subset);
 				}
 				else
 				{
-					// std::cout << "Subset does not" << std::endl;
 					std::erase_if(dependents, [&subset](auto const& e){ return SubsetEq(e, subset);});
 					dependents.push_back(subset);
-
-					// std::cout << "New dependents list:" << std::endl;
-					// for (auto i = dependents.begin(); i != dependents.end(); i++)
-					// {
-					// 	PrintSet((*i));
-					// }
 				}
 
 				continue;
 			}
 			//		If there are no such subsets, add top to minimal if it does not contain any existing minimals
 			que.pop();
-			// std::cout << "No remaining subsets, checking minimality" << std::endl;
 			bool bad = false;
 			for (auto it = minimals.begin(); it != minimals.end(); it++)
 			{
@@ -255,13 +242,6 @@ namespace Semiring
 			if (!bad)
 				minimals.push_back(top);
 		}
-
-		// std::cout << "Minimals found: " << std::endl;
-		// for (auto i = minimals.begin(); i != minimals.end(); i++)
-		// {
-		// 	std::cout <<"\n";
-		// 	PrintSet(*i);
-		// }
 
 		return minimals;
 	};
