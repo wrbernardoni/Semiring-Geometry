@@ -6,71 +6,13 @@
 #include <iostream>
 
 #include <vector>
+#include <unordered_map>
 
-#define VERBOSE 1
+
+#include "UtilitiesDefinitions.h"
 
 namespace Semiring
 {
-	// std::vector<std::vector<int>> ChoiceBuilder(int N, int C, int minE, Semiring::FreeIdempotentSemiring<Semiring::FreeMonoid<0>> built, std::vector<Semiring::FreeIdempotentSemiring<Semiring::FreeMonoid<0>>>& constraints)
-	// {
-	// 	for (int l = 0; l < constraints.size(); l++)
-	// 	{
-	// 		if (built <= constraints[l])
-	// 		{
-	// 			return std::vector<std::vector<int>>();
-	// 		}
-	// 	}
-
-	// 	if (C > 1)
-	// 	{
-	// 		// if (C > (N - minE))
-	// 		// 	return std::vector<std::vector<int>>();
-
-	// 		std::vector<std::vector<int>> choices;
-
-	// 		for (int  i = minE; i < N; i++)
-	// 		{
-	// 			auto subC = ChoiceBuilder(N, C - 1, i+1, built + Semiring::FreeIdempotentSemiring<Semiring::FreeMonoid<0>>(Semiring::FreeMonoid<0>(i + 1)), constraints);
-	// 			for (int j = 0; j < subC.size(); j++)
-	// 			{
-	// 				std::vector<int> c;
-	// 				c.push_back(i);
-	// 				c.insert(c.end(), subC[j].begin(), subC[j].end());
-	// 				choices.push_back(c);
-	// 			}
-	// 		}
-
-	// 		return choices;
-	// 	}
-
-	// 	if (C == 1)
-	// 	{
-	// 		std::vector<std::vector<int>> choices;
-	// 		for (int i = minE; i < N; i++)
-	// 		{
-	// 			bool redundant = false;
-	// 			for (int l = 0; l < constraints.size(); l++)
-	// 			{
-	// 				if ((built + Semiring::FreeIdempotentSemiring<Semiring::FreeMonoid<0>>(Semiring::FreeMonoid<0>(i + 1))) <= constraints[l])
-	// 				{
-	// 					redundant = true;
-	// 					break;
-	// 				}
-	// 			}
-	// 			if (!redundant)
-	// 			{
-	// 				std::vector<int> c;
-	// 				c.push_back(i);
-	// 				choices.push_back(c);
-	// 			}
-	// 		}
-	// 		return choices;
-	// 	}
-
-	// 	return std::vector<std::vector<int>>();
-		
-	// }
-
 	template<typename T> 
 	T PartialStar(T x, unsigned int n)
 	{
@@ -97,15 +39,6 @@ namespace Semiring
 		#ifdef VERBOSE
 			std::cout << "\tSetting up path matrix" << std::endl;
 		#endif
-		Semiring::Matrix<Semiring::FreeIdempotentSemiring<Semiring::FreeIdempotentSemiring<Semiring::FreeMonoid<N * N>>>,N,N> pathMatrix([&costMatrix](unsigned int t, unsigned int d)->Semiring::FreeIdempotentSemiring<Semiring::FreeIdempotentSemiring<Semiring::FreeMonoid<N * N>>> {
-			if (costMatrix(t,d) != CostType::Zero())
-				return Semiring::FreeIdempotentSemiring<Semiring::FreeIdempotentSemiring<Semiring::FreeMonoid<N * N>>>(Semiring::FreeIdempotentSemiring<Semiring::FreeMonoid<N * N>>(Semiring::FreeMonoid<N * N>(t * N + d + 1)));
-			else
-			{
-				return Semiring::FreeIdempotentSemiring<Semiring::FreeIdempotentSemiring<Semiring::FreeMonoid<N * N>>>(Semiring::FreeIdempotentSemiring<Semiring::FreeMonoid<N * N>>());
-			}
-		});
-
 		auto dispL = [](unsigned int x)->std::string{
 			if (x == 0)
 				return "-";
@@ -119,12 +52,47 @@ namespace Semiring
 			return s;
 		};
 
+		Semiring::Matrix<Semiring::FreeIdempotentSemiring<Semiring::FreeIdempotentSemiring<Semiring::FreeMonoid<N * N>>>,N,N> pathMatrix([&costMatrix, &dispL](unsigned int t, unsigned int d)->Semiring::FreeIdempotentSemiring<Semiring::FreeIdempotentSemiring<Semiring::FreeMonoid<N * N>>> {
+			auto e = Semiring::FreeIdempotentSemiring<Semiring::FreeIdempotentSemiring<Semiring::FreeMonoid<N * N>>>(Semiring::FreeIdempotentSemiring<Semiring::FreeMonoid<N * N>>());
+			if (costMatrix(t,d) != CostType::Zero())
+			{
+				auto n = Semiring::FreeMonoid<N * N>(t * N + d + 1);
+				n.setLabel(dispL);
+				e = e + Semiring::FreeIdempotentSemiring<Semiring::FreeIdempotentSemiring<Semiring::FreeMonoid<N * N>>>(Semiring::FreeIdempotentSemiring<Semiring::FreeMonoid<N * N>>(n));
+			}
+
+			if (t == d)
+			{
+				auto n = Semiring::FreeMonoid<N * N>::One();
+				n.setLabel(dispL);
+				e = e + Semiring::FreeIdempotentSemiring<Semiring::FreeIdempotentSemiring<Semiring::FreeMonoid<N * N>>>(Semiring::FreeIdempotentSemiring<Semiring::FreeMonoid<N * N>>(n));
+			}
+
+			return e;
+		});
+
+		Semiring::Matrix<Semiring::FreeIdempotentSemiring<Semiring::FreeMonoid<N * N>>,N,N> pBundle;
+		for (int t = 0; t < N; t++)
+		{
+			for (int d = 0; d < N; d++)
+			{
+				auto opSet = pathMatrix(t,d).getSet();
+				std::unordered_set<Semiring::FreeMonoid<N * N>, StreamHash<Semiring::FreeMonoid<N * N>>> aPaths;
+				for (auto itr = opSet.begin(); itr != opSet.end(); itr++)
+				{
+					aPaths = Semiring::Union(aPaths, itr->getSet());
+				}
+
+				pBundle(t,d) = aPaths;
+			}
+		}
+
 		#ifdef VERBOSE
 			std::cout << "\tSetting up step matrices" << std::endl;
 		#endif
 		Semiring::Matrix<CostType,N,N> costStep = costMatrix + Semiring::Matrix<CostType,N,N>::One();
-		pathMatrix =  pathMatrix + Semiring::Matrix<Semiring::FreeIdempotentSemiring<Semiring::FreeIdempotentSemiring<Semiring::FreeMonoid<N * N>>>,N,N>::One();
-		auto pathStep = pathMatrix;
+		// pathMatrix =  pathMatrix + Semiring::Matrix<Semiring::FreeIdempotentSemiring<Semiring::FreeIdempotentSemiring<Semiring::FreeMonoid<N * N>>>,N,N>::One();
+		auto pathStep = pBundle;
 		auto cMatrix = costPrepend * costStep;
 		#ifdef VERBOSE
 			std::cout << "\tMatrices created" << std::endl;
@@ -142,28 +110,25 @@ namespace Semiring
 			{
 				for (int d = 0; d < N; d++)
 				{
-					if ((cMatrix(t,d) == pCMatrix(t,d)) && (i > 1))
+					// if ((cMatrix(t,d) == pCMatrix(t,d)) && (i > 1))
+					// 	continue;
+					
+					if (cMatrix(t,d) == CostType::Zero())
+					{
+						// #ifdef VERBOSE
+						// 	std::cout << "\t\t\tNo available path" << std::endl;
+						// #endif
+						pathMatrix(t,d) = Semiring::FreeIdempotentSemiring<Semiring::FreeIdempotentSemiring<Semiring::FreeMonoid<N * N>>>::Zero();
 						continue;
+					}
 
 					#ifdef VERBOSE
 						std::cout << "\t\t Reducing entry ("<< t << "," << d << ")" << std::endl;
 					#endif
-					if (cMatrix(t,d) == CostType::Zero())
-					{
-						#ifdef VERBOSE
-							std::cout << "\t\t\tNo available path" << std::endl;
-						#endif
-						pathMatrix(t,d) = Semiring::FreeIdempotentSemiring<Semiring::FreeIdempotentSemiring<Semiring::FreeMonoid<N * N>>>::Zero();
-						continue;
-					}
 					std::unordered_set<Semiring::FreeIdempotentSemiring<Semiring::FreeMonoid<N * N>>, StreamHash<Semiring::FreeIdempotentSemiring<Semiring::FreeMonoid<N * N>>>> availPaths;
+					std::unordered_map<Semiring::FreeMonoid<N * N>, int, StreamHash<Semiring::FreeIdempotentSemiring<Semiring::FreeMonoid<N * N>>>> pMap;
 
-					auto opSet = pathMatrix(t,d).getSet();
-					std::unordered_set<Semiring::FreeMonoid<N * N>, StreamHash<Semiring::FreeMonoid<N * N>>> aPaths;
-					for (auto itr = opSet.begin(); itr != opSet.end(); itr++)
-					{
-						aPaths = Semiring::Union(aPaths, itr->getSet());
-					}
+					std::unordered_set<Semiring::FreeMonoid<N * N>, StreamHash<Semiring::FreeMonoid<N * N>>> aPaths = pBundle(t,d).getSet();;
 
 					std::vector<Semiring::FreeMonoid<N * N>> bases;
 					std::vector<CostType> baseCost;
@@ -187,7 +152,134 @@ namespace Semiring
 							bases.push_back((*itr));
 							baseCost.push_back(pathCost);
 							bses.insert(Semiring::FreeMonoid<0>(bases.size()));
+							pMap[(*itr)] = bases.size();
 						}
+					}
+					std::vector<std::unordered_set<Semiring::FreeMonoid<0>, Semiring::StreamHash<Semiring::FreeMonoid<0>>>> seeds;
+
+					// if ((cMatrix(t,d) == pCMatrix(t,d)) && (i > 1))
+					// {
+					// 	#ifdef VERBOSE
+					// 		std::cout << "\t\t\tCost unchanged, seeding search with previous minimal paths." << std::endl;
+					// 	#endif
+
+					// 	auto pMinimal = pathMatrix(t,d).getSet();
+					// 	for (auto mSet = pMinimal.begin(); mSet != pMinimal.end(); mSet++)
+					// 	{
+					// 		std::unordered_set<Semiring::FreeMonoid<0>, Semiring::StreamHash<Semiring::FreeMonoid<0>>> pSet;
+					// 		bool good = true;
+					// 		auto pathBundle = (*mSet).getSet();
+					// 		for (auto p = pathBundle.begin(); p != pathBundle.end(); p++)
+					// 		{
+					// 			if (pMap.count((*p)) != 0)
+					// 			{
+					// 				pSet.insert(Semiring::FreeMonoid<0>(pMap[(*p)]));
+					// 			}
+					// 			else
+					// 			{
+					// 				good = false;
+					// 				#ifdef VERBOSE
+					// 					std::cout << "\t\t\t\tPrevious minimal path missing???" << std::endl;
+					// 				#endif
+					// 				break;
+					// 			}
+					// 		}
+
+					// 		if (good)
+					// 		{
+					// 			seeds.push_back(pSet);
+					// 		}
+					// 	}
+
+					// 	#ifdef VERBOSE
+					// 		std::cout << "\t\t\t\tSeeding with " << seeds.size() << " minimal bundles." << std::endl;
+					// 	#endif
+					// }
+
+					if (i > 1)
+					{
+						#ifdef VERBOSE
+							std::cout << "\t\t\tSeeding with minimal products." << std::endl;
+						#endif
+						
+						Semiring::FreeIdempotentSemiring<Semiring::FreeIdempotentSemiring<Semiring::FreeMonoid<N * N>>> minimalSeeds;
+						for (int j = 0; j < N; j++)
+						{
+							auto minimalJoins = (pathMatrix(t,j)).getSet();
+
+							auto runningMinimal = minimalSeeds.getSet();
+							Semiring::FreeIdempotentSemiring<Semiring::FreeIdempotentSemiring<Semiring::FreeMonoid<N * N>>> newMinSeed;
+
+							for (auto it1 = minimalJoins.begin(); it1 != minimalJoins.end(); it1++)
+							{
+								auto newP = ((*it1)*pathStep(j,d)).getSet();
+								Semiring::FreeIdempotentSemiring<Semiring::FreeMonoid<N * N>> runningLink;
+
+								for (auto p = newP.begin(); p != newP.end(); p++)
+								{
+									if (pMap.count((*p)) != 0)
+									{
+										runningLink.insert(*p);
+									}
+								}
+
+								if (runningMinimal.size() != 0)
+								{
+									for (auto it2 = runningMinimal.begin(); it2 != runningMinimal.end(); it2++)
+									{
+										newMinSeed.insert((runningLink) + (*it2));
+									}
+								}
+								else if (runningLink.getSet().size() != 0)
+								{
+									newMinSeed.insert((runningLink));
+								}
+							}
+							if (newMinSeed.getSet().size() != 0)
+								minimalSeeds = newMinSeed;
+						}
+
+						if ((cMatrix(t,d) == pCMatrix(t,d)))
+						{
+							#ifdef VERBOSE
+								std::cout << "\t\t\t\tCost unchanged, seeding search with previous minimal paths." << std::endl;
+							#endif
+							minimalSeeds = minimalSeeds + pathMatrix(t,d);
+						}
+
+						auto mSS = minimalSeeds.getSet();
+
+						for (auto mSet = mSS.begin(); mSet != mSS.end(); mSet++)
+						{
+							std::unordered_set<Semiring::FreeMonoid<0>, Semiring::StreamHash<Semiring::FreeMonoid<0>>> pSet;
+							bool good = true;
+							auto pathBundle = (*mSet).getSet();
+							for (auto p = pathBundle.begin(); p != pathBundle.end(); p++)
+							{
+								if (pMap.count((*p)) != 0)
+								{
+									pSet.insert(Semiring::FreeMonoid<0>(pMap[(*p)]));
+								}
+								else
+								{
+									#ifdef VERBOSE
+										std::cout << "\t\t\t\tPrevious minimal path missing???" << std::endl;
+									#endif
+
+									good = false;
+									break;
+								}
+							}
+
+							if (good)
+							{
+								seeds.push_back(pSet);
+							}
+						}
+
+						#ifdef VERBOSE
+							std::cout << "\t\t\t\tSeeding with " << seeds.size() << " total seeds." << std::endl;
+						#endif
 					}
 
 					auto optCost = cMatrix(t,d);
@@ -204,7 +296,7 @@ namespace Semiring
 						}
 
 						return (bagCost == optCost);
-					});
+					}, seeds);
 
 					#ifdef VERBOSE
 						std::cout << "\t\t\t" << minimalSubsets.size() << " minimal bundles found." << std::endl;
@@ -226,6 +318,14 @@ namespace Semiring
 
 
 					pathMatrix(t,d) = Semiring::FreeIdempotentSemiring<Semiring::FreeIdempotentSemiring<Semiring::FreeMonoid<N * N>>>(availPaths);
+
+					std::unordered_set<Semiring::FreeMonoid<N * N>, StreamHash<Semiring::FreeMonoid<N * N>>> bund;
+					for (auto itr = availPaths.begin(); itr != availPaths.end(); itr++)
+					{
+						bund = Semiring::Union(bund, itr->getSet());
+					}
+
+					pBundle(t,d) = bund;
 				}
 			}
 
@@ -233,6 +333,11 @@ namespace Semiring
 				std::cout << "\tStep " << i << std::endl;
 				std::cout << pathMatrix << std::endl;
 			#endif
+
+			if (i == max_steps)
+			{
+				return pathMatrix;
+			}
 			
 			
 
@@ -249,8 +354,9 @@ namespace Semiring
 			#ifdef VERBOSE
 				std::cout << "\tPath matrix multiplication step" << std::endl;
 			#endif
-			auto nP = pathMatrix * pathStep;
+			pBundle = pBundle * pathStep;
 
+			/*
 			#ifdef VERBOSE
 				std::cout << "\tReducing to prior entries in path matrix for unchanged cost" << std::endl;
 			#endif
@@ -264,13 +370,161 @@ namespace Semiring
 					}
 				}
 			}
+			*/
+
 			pCMatrix = cMatrix;
 			cMatrix = nC;
-			pathMatrix = nP;
 		}
 
 		return pathMatrix;
 	}
+
+	template<unsigned int N>
+	std::vector<double> IndegreeOptimalCentrality(Semiring::Matrix<Semiring::FreeIdempotentSemiring<Semiring::FreeIdempotentSemiring<Semiring::FreeMonoid<N * N>>>,N,N> optimalPaths)
+	{
+		std::vector<double> centralities(N);
+
+		for (int i = 0; i < N; i++)
+		{
+			for (int j = 0; j < N; j++)
+			{
+				auto minimals = optimalPaths(i,j).getSet();
+				for (auto it = minimals.begin(); it != minimals.end(); it++)
+				{
+					std::vector<bool> represented(N);
+					for (int k = 0; k < N; k++)
+					{
+						represented[k] = false;
+					}
+					auto pathSet = (*it).getSet();
+					for (auto p = pathSet.begin(); p != pathSet.end(); p++)
+					{
+						for (int step = 0; step < p->size(); step++)
+						{
+							int from = (p->at(step) - 1)/N;
+							int to = (p->at(step) - 1)%N;
+							if (from != to)
+								represented[to] = true;
+						}
+					}
+
+					for (int k = 0; k < N; k++)
+					{
+						if (represented[k])
+						{
+							centralities[k] += ((double)1.0 / (double)minimals.size())/(double)(N * N);
+						}
+					}
+				}
+			}
+		}
+
+		return centralities;
+	}
+
+	template<unsigned int N>
+	std::vector<double> OutdegreeOptimalCentrality(Semiring::Matrix<Semiring::FreeIdempotentSemiring<Semiring::FreeIdempotentSemiring<Semiring::FreeMonoid<N * N>>>,N,N> optimalPaths)
+	{
+		std::vector<double> centralities(N);
+
+		for (int i = 0; i < N; i++)
+		{
+			for (int j = 0; j < N; j++)
+			{
+				auto minimals = optimalPaths(i,j).getSet();
+				for (auto it = minimals.begin(); it != minimals.end(); it++)
+				{
+					std::vector<bool> represented(N);
+					for (int k = 0; k < N; k++)
+					{
+						represented[k] = false;
+					}
+					auto pathSet = (*it).getSet();
+					for (auto p = pathSet.begin(); p != pathSet.end(); p++)
+					{
+						for (int step = 0; step < p->size(); step++)
+						{
+							int from = (p->at(step) - 1)/N;
+							int to = (p->at(step) - 1)%N;
+							if (from != to)
+								represented[from] = true;
+						}
+					}
+
+					for (int k = 0; k < N; k++)
+					{
+						if (represented[k])
+						{
+							centralities[k] += ((double)1.0 / (double)minimals.size())/(double)(N * N);
+						}
+					}
+				}
+			}
+		}
+
+		return centralities;
+	}
+
+	template<unsigned int N>
+	std::vector<double> StorageCentrality(Semiring::Matrix<Semiring::FreeIdempotentSemiring<Semiring::FreeIdempotentSemiring<Semiring::FreeMonoid<N * N>>>,N,N> optimalPaths)
+	{
+		std::vector<double> centralities(N);
+
+		for (int i = 0; i < N; i++)
+		{
+			for (int j = 0; j < N; j++)
+			{
+				auto minimals = optimalPaths(i,j).getSet();
+				for (auto it = minimals.begin(); it != minimals.end(); it++)
+				{
+					std::vector<bool> represented(N);
+					for (int k = 0; k < N; k++)
+					{
+						represented[k] = false;
+					}
+					auto pathSet = (*it).getSet();
+					for (auto p = pathSet.begin(); p != pathSet.end(); p++)
+					{
+						for (int step = 0; step < p->size(); step++)
+						{
+							int from = (p->at(step) - 1)/N;
+							int to = (p->at(step) - 1)%N;
+							if (to == from)
+								represented[from] = true;
+						}
+					}
+
+					for (int k = 0; k < N; k++)
+					{
+						if (represented[k])
+						{
+							centralities[k] += ((double)1.0 / (double)minimals.size())/(double)(N * N);
+						}
+					}
+				}
+			}
+		}
+
+		return centralities;
+	}
+
+	template<unsigned int N>
+	std::vector<double> OptimalCentrality(Semiring::Matrix<Semiring::FreeIdempotentSemiring<Semiring::FreeIdempotentSemiring<Semiring::FreeMonoid<N * N>>>,N,N> optimalPaths)
+	{
+		std::vector<double> in = IndegreeOptimalCentrality(optimalPaths);
+		std::vector<double> out = OutdegreeOptimalCentrality(optimalPaths);
+		std::vector<double> store = StorageCentrality(optimalPaths);
+		std::vector<double> centralities(N);
+
+		for (int i = 0; i < N; i++)
+		{
+			centralities[i] = (in[i] + out[i] + store[i])/3.0;
+		}
+
+		return centralities;
+	}
 }
+
+
 
 #endif
