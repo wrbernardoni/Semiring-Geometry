@@ -7,7 +7,10 @@
 #include <queue>
 #include <stdlib.h>
 
+#include "UtilitiesDefinitions.h"
+
 #include <iostream>
+#include <random>
 
 namespace Semiring
 {
@@ -49,22 +52,61 @@ namespace Semiring
 	{
 		std::unordered_set<S, StreamHash<S>> set;
 
-		for (auto itr = setA.begin(); itr != setA.end(); itr++)
+		if (setA.size() > setB.size())
 		{
-			set.insert(*itr);
+			set = setA;
+			for (auto itr = setB.begin(); itr != setB.end(); itr++)
+			{
+				set.insert(*itr);
+			}
 		}
-
-		for (auto itr = setB.begin(); itr != setB.end(); itr++)
+		else
 		{
-			set.insert(*itr);
-		}
+			set = setB;
+			for (auto itr = setA.begin(); itr != setA.end(); itr++)
+			{
+				set.insert(*itr);
+			}
+		}	
 
 		return set;
 	};
 
 	template<typename S>
+	std::unordered_set<S, StreamHash<S>> Intersect(std::unordered_set<S, StreamHash<S>> left, std::unordered_set<S, StreamHash<S>> right)
+	{
+		std::unordered_set<S, StreamHash<S>> intersect;
+		std::unordered_set<S, StreamHash<S>>* small;
+		std::unordered_set<S, StreamHash<S>>* big;
+
+		if (left.size() <= right.size())
+		{
+			small = &left;
+			big = &right;
+		}
+		else
+		{
+			small = &right;
+			big = &left;
+		}
+
+		for (auto it = small->begin(); it != small->end(); it++)
+		{
+			if (big->count(*it) != 0)
+			{
+				intersect.insert((*it));
+			}
+		}
+
+		return intersect;
+	}
+
+	template<typename S>
 	bool SubsetEq(std::unordered_set<S, StreamHash<S>> left, std::unordered_set<S, StreamHash<S>> right)
 	{
+		if (left.size() > right.size())
+			return false;
+
 		for (auto it = left.begin(); it != left.end(); it++)
 		{
 			if (right.count(*it) == 0)
@@ -79,7 +121,9 @@ namespace Semiring
 	template<typename S>
 	bool SetEq(std::unordered_set<S, StreamHash<S>> left, std::unordered_set<S, StreamHash<S>> right)
 	{
-		return (SubsetEq(left, right) && SubsetEq(right, left));
+		if (left.size() != right.size())
+			return false;
+		return SubsetEq(left, right);
 	}
 
 	template<typename S>
@@ -99,30 +143,62 @@ namespace Semiring
 			}
 			std::cout << (*it);
 		}
-		std::cout << "}" << std::endl;
+		std::cout << "}";
 	}
 
 	// Generates an arbitrary subset, aiming to be around half the size of the set.
+	// Assumes that the number of lower bound restrictions is higher than upper bound restrictions
 	template<typename S>
-	std::unordered_set<S,StreamHash<S>> GenerateSubset(std::unordered_set<S,StreamHash<S>> baseSet, std::vector<std::unordered_set<S,StreamHash<S>>> notSuperset, std::vector<std::unordered_set<S,StreamHash<S>>> notSubset)
+	std::unordered_set<S,StreamHash<S>> GenerateSubset(std::unordered_set<S,StreamHash<S>> baseSet, std::vector<std::unordered_set<S,StreamHash<S>>> notSuperset, std::vector<std::unordered_set<S,StreamHash<S>>> notSubset, int goalSize)
 	{
 		if (baseSet.size() <= 1)
 			return std::unordered_set<S,StreamHash<S>>();
 
 		std::vector<S> ele(baseSet.begin(), baseSet.end());
-		int goalSize = baseSet.size() / 2 + (baseSet.size() % 2);
+		std::random_shuffle(ele.begin(), ele.end());
 		int cBestSize = -1;
 		std::unordered_set<S,StreamHash<S>> currentBest;
 
 		std::deque<std::unordered_set<S,StreamHash<S>>> q;
 
+		std::vector<std::unordered_set<S,StreamHash<S>>> notSub;
+		for (int i = 0; i < notSubset.size(); i++)
+		{
+			if (SubsetEq(notSubset[i], baseSet))
+			{
+				notSub.push_back(notSubset[i]);
+			}
+		}
+
+		std::vector<std::unordered_set<S,StreamHash<S>>> notSup;
+		for (int i = 0; i < notSuperset.size(); i++)
+		{
+			std::unordered_set<S,StreamHash<S>> s = Intersect(notSuperset[i], baseSet);
+			bool add = true;
+			for (int j = 0; j < notSup.size(); j++)
+			{
+				if (SetEq(notSup[j], s))
+				{
+					add = false;
+					break;
+				}
+			}
+
+			if (add)
+			{
+				notSup.push_back(s);
+			}
+		}
+
 		std::deque<int> lIns;
 		std::deque<std::unordered_set<S,StreamHash<S>>> setQ;
 
+		bool breadth = true;
+
 		for (int i = 0; i < ele.size(); i++)
 		{
-			std::unordered_set<S,StreamHash<S>> testS;
-			testS.insert(ele[i]);
+			std::unordered_set<S,StreamHash<S>> testS = baseSet;
+			testS.erase(ele[i]);
 			lIns.push_back(i);
 			setQ.push_back(testS);
 		}
@@ -134,14 +210,14 @@ namespace Semiring
 			setQ.pop_front();
 			lIns.pop_front();
 
-			if (topS.size() == baseSet.size())
+			if (topS.size() == 0)
 				continue;
 
 			// Check if top includes anything in notSuperset
 			bool bad = false;
-			for (auto it = notSuperset.begin(); it != notSuperset.end(); it++)
+			for (auto it = notSub.begin(); it != notSub.end(); it++)
 			{
-				if (SubsetEq((*it),topS))
+				if (SubsetEq(topS, (*it)))
 				{
 					bad = true;
 					break;
@@ -156,9 +232,9 @@ namespace Semiring
 				// If so check if it is a subset of dependents
 			if ((abs((int) topS.size() - goalSize) < abs(cBestSize - goalSize)) || (cBestSize == -1))
 			{
-				for (auto it = notSubset.begin(); it != notSubset.end(); it++)
+				for (auto it = notSup.begin(); it != notSup.end(); it++)
 				{
-					if (SubsetEq(topS,(*it)))
+					if (SubsetEq((*it), topS))
 					{
 						bad = true;
 						break;
@@ -169,6 +245,7 @@ namespace Semiring
 				{
 					cBestSize = topS.size();
 					currentBest = topS;
+					breadth = false;
 
 					if (cBestSize == goalSize)
 					{
@@ -176,14 +253,32 @@ namespace Semiring
 					}
 				}
 			}
-
-			for (int i = lAdd + 1; i < ele.size(); i++)
+			else if ((cBestSize != -1) && topS.size() < goalSize)
 			{
-				std::unordered_set<S,StreamHash<S>> newS;
-				newS = topS;
-				newS.insert(ele[i]);
-				setQ.push_front(newS);
-				lIns.push_front(i);
+				continue;
+			}
+
+			if (breadth)
+			{
+				for (int i = lAdd + 1; i < ele.size(); i++)
+				{
+					std::unordered_set<S,StreamHash<S>> newS;
+					newS = topS;
+					newS.erase(ele[i]);
+					setQ.push_back(newS);
+					lIns.push_back(i);
+				}
+			}
+			else
+			{
+				for (int i = ele.size() - 1; i >= lAdd + 1; i--)
+				{
+					std::unordered_set<S,StreamHash<S>> newS;
+					newS = topS;
+					newS.erase(ele[i]);
+					setQ.push_front(newS);
+					lIns.push_front(i);
+				}
 			}
 		}
 
@@ -194,7 +289,7 @@ namespace Semiring
 	// Assumes that oracle(all) = true and that oracle({}) = false
 	// Also assumes that if X <= Y then oracle(X) = true implies oracle(Y) = true
 	template<typename S, typename Fun>
-	std::vector<std::unordered_set<S,StreamHash<S>>> MinimalSubsets(std::unordered_set<S,StreamHash<S>> all, Fun oracle)
+	std::vector<std::unordered_set<S,StreamHash<S>>> MinimalSubsets(std::unordered_set<S,StreamHash<S>> all, Fun oracle, std::vector<std::unordered_set<S,StreamHash<S>>> initialMinimals = std::vector<std::unordered_set<S,StreamHash<S>>>())
 	{
 		std::vector<std::unordered_set<S,StreamHash<S>>> minimals;
 		std::vector<std::unordered_set<S,StreamHash<S>>> dependents;
@@ -206,6 +301,17 @@ namespace Semiring
 		std::unordered_set<S,StreamHash<S>> top = all;
 		que.push(all);
 
+		for (int i = 0; i < initialMinimals.size(); i++)
+		{
+			que.push(initialMinimals[i]);
+		}
+
+		#ifdef VERBOSE
+			unsigned int minCount = 0;
+			std::cout << "\t\t\tFinding minimal subsets out of set of size " << all.size() << std::endl;
+			unsigned int oracleCalls = 0;
+		#endif
+
 		while (que.size() != 0)
 		{
 			std::unordered_set<S,StreamHash<S>> top = que.top();
@@ -213,9 +319,38 @@ namespace Semiring
 			// See if there is a subset of top, not containing any minimals and not being contained in any dependents
 			//		Test that subset, if dependent add it to dependent list
 			//				if independent add it to queue
-			std::unordered_set<S,StreamHash<S>> subset = GenerateSubset(top, minimals, dependents);
+			int depC = 0;
+			int depN = 0;
+			for (int i = 0; i < dependents.size();i++)
+			{
+				int subE = Intersect(dependents[i], top).size();
+				//if (subE != 0)
+				//{
+					depC += subE;
+					depN++;
+				//}
+			}
+			int avgDepsize = 0;
+			if (depN != 0)
+				avgDepsize = (depC + depN - 1)/(depN);
+
+			int goalSize = (top.size() + avgDepsize)/2;
+			if (goalSize > top.size() - 1)
+				goalSize = top.size()/2 + top.size()%2;
+			#ifdef VERBOSE
+				std::cout << "\t\t\t\t(g)" << top.size() << "-> ? #min:" << minimals.size() << "(" << (minimals.size() != 0 ? ((minCount + minimals.size() - 1)/minimals.size())  : 0) << ") #dep:" << dependents.size() << " #queue:" << que.size() << " goalSize:" << goalSize << " oracleCalls:" << oracleCalls;
+				std::cout << "      \r" << std::flush;
+			#endif
+			std::unordered_set<S,StreamHash<S>> subset = GenerateSubset(top, minimals, dependents, goalSize);
+			#ifdef VERBOSE
+				std::cout << "\t\t\t\t(c)" << top.size() << "->" << subset.size() << " #min:" << minimals.size() << "(" << (minimals.size() != 0 ? ((minCount + minimals.size() - 1)/minimals.size())  : 0) << ") #dep:" << dependents.size() <<" #queue:" << que.size() << " goalSize:" << goalSize << " oracleCalls:" << oracleCalls;
+				std::cout << "      \r" << std::flush;
+			#endif
 			if (subset.size() != 0)
 			{
+				#ifdef VERBOSE
+					oracleCalls++;
+				#endif
 				if(oracle(subset))
 				{
 					que.push(subset);
@@ -240,8 +375,17 @@ namespace Semiring
 				}
 			}
 			if (!bad)
+			{
+				#ifdef VERBOSE
+					minCount += top.size();
+				#endif
 				minimals.push_back(top);
+			}
 		}
+
+		#ifdef VERBOSE
+			std::cout << "\n";
+		#endif
 
 		return minimals;
 	};
