@@ -70,7 +70,10 @@ namespace Semiring
 				ret.push_back(rhs.x[i]);
 			}
 
-			return FreeMonoid<N>(ret);
+			auto r = FreeMonoid<N>(ret);
+			r.setLabel(label);
+
+			return r;
 		}
 
 		FreeMonoid<N>& operator= (const FreeMonoid<N>& rhs)
