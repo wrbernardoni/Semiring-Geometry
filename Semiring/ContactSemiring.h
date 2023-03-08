@@ -109,53 +109,17 @@ namespace Semiring
 
 		inline friend bool operator>=(const ContactSemiring<T,L>& lhs, const ContactSemiring<T,L>& rhs)
 		{
-			for (auto it = rhs.conv.begin(); it != rhs.conv.end(); it++)
-			{
-				if (lhs.conv.count(it->first) == 0)
-					return false;
-				for (auto it2 = it->second.begin(); it2 != it->second.end(); it++)
-				{
-					if (lhs.at(it->first, it2->first) < it2->second)
-					{
-						return false;
-					}
-				}
-			}
-			return true;
+			return rhs <= lhs;
 		}
 
 		inline friend bool operator<(const ContactSemiring<T,L>& lhs, const ContactSemiring<T,L>& rhs)
 		{
-			for (auto it = lhs.conv.begin(); it != lhs.conv.end(); it++)
-			{
-				if (rhs.conv.count(it->first) == 0)
-					return false;
-				for (auto it2 = it->second.begin(); it2 != it->second.end(); it++)
-				{
-					if (rhs.at(it->first, it2->first) >= it2->second)
-					{
-						return false;
-					}
-				}
-			}
-			return true;
+			return ((lhs <= rhs) && (lhs != rhs));
 		}
 
 		inline friend bool operator>(const ContactSemiring<T,L>& lhs, const ContactSemiring<T,L>& rhs)
 		{
-			for (auto it = rhs.conv.begin(); it != rhs.conv.end(); it++)
-			{
-				if (lhs.conv.count(it->first) == 0)
-					return false;
-				for (auto it2 = it->second.begin(); it2 != it->second.end(); it++)
-				{
-					if (lhs.at(it->first, it2->first) <= it2->second)
-					{
-						return false;
-					}
-				}
-			}
-			return true;
+			return rhs < lhs;
 		}
 
 		const ContactSemiring<T,L> operator+ (const ContactSemiring<T,L>& rhs) const
