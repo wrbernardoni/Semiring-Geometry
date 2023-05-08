@@ -3,6 +3,7 @@
 
 #include "BooleanSemiring.h"
 #include "TropicalSemiring.h"
+#include "MaxMinSemiring.h"
 #include "ContactSemiring.h"
 #include "Matrix.h"
 #include "HopLimitedSemiring.h"

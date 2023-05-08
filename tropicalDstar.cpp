@@ -3,6 +3,10 @@
 #include <Monoids.h>
 #include <ShortestPath.h>
 
+#include <stdlib.h>     /* srand, rand */
+#include <time.h>       /* time */
+#include <string>
+
 using namespace std;
 
 int main()
@@ -190,7 +194,20 @@ int main()
 	cout << PS << endl;
 
 	// Semiring::Matrix<Semiring::ContactSemiring<Semiring::BooleanSemiring, 16>,4,4>
-	cout << Semiring::MinimalPaths<Semiring::ContactSemiring<Semiring::BooleanSemiring, 16>, 4>(bigM, 30);
+	auto exMin = Semiring::MinimalPaths<Semiring::ContactSemiring<Semiring::BooleanSemiring, 16>, 4>(bigM, 30);
+	cout << exMin;
+
+	cout << endl << "Centralities\t(in)\t(out)\t(store)\t(avg):" << endl;
+	auto exinCent = Semiring::IndegreeOptimalCentrality(exMin);
+	auto exoutCent = Semiring::OutdegreeOptimalCentrality(exMin);
+	auto estoreCent = Semiring::StorageCentrality(exMin);
+	for (int i = 0; i < 4; i++)
+	{
+		cout << "["<< i << "]\t("<< exinCent[i] << "), (" << exoutCent[i] << "), (" << estoreCent[i] << "), (" << (exinCent[i] + exoutCent[i] + estoreCent[i])/3.0 << ")" << endl;
+	}
+
+	// cout << std::endl << std::endl;
+	// cout << Semiring::MinimalPaths<Semiring::ContactSemiring<Semiring::HopLimitedSemiring<5>, 30>>(FourSteps, 30);
 
 	// cout << Semiring::ContactSemiring<Semiring::HopLimitedSemiring<5>,30>::One() * pK << endl;
 
@@ -210,6 +227,125 @@ int main()
 	// }
 	// cout << y << endl;
 	// cout << x;
+
+
+	cout << endl << endl;
+	
+	const int NN = 20;
+	const int timeLimit = 300;
+	const int hopLimit = 10;
+	const int storageTime = 10;
+	int linkNum = 300;
+	cout << NN << " x " << NN << " test" << endl;
+	Semiring::Matrix<Semiring::ContactSemiring<Semiring::HopLimitedSemiring<hopLimit>, timeLimit>,NN,NN> bigBoi([](unsigned int i, unsigned int j)->Semiring::ContactSemiring<Semiring::HopLimitedSemiring<hopLimit>, timeLimit>{
+		if (i == j)
+		{
+			return Semiring::ContactSemiring<Semiring::HopLimitedSemiring<hopLimit>, timeLimit>([](unsigned int t, unsigned int d)->Semiring::HopLimitedSemiring<hopLimit>
+			{
+				if (d == 0)
+				{
+					return Semiring::HopLimitedSemiring<hopLimit>::Zero();//(0);
+				}
+				else //if (d <= storageTime)
+				{
+					return Semiring::HopLimitedSemiring<hopLimit>(d/storageTime + 1);
+				}
+				// else
+				// {
+				// 	return Semiring::HopLimitedSemiring<hopLimit>::Zero();
+				// }
+			});
+		}
+		else
+		{
+			return Semiring::ContactSemiring<Semiring::HopLimitedSemiring<hopLimit>, timeLimit>::Zero();
+		}
+	});
+	srand (time(NULL));
+	for (int  i = 0; i < linkNum; i++)
+	{
+		int source = rand() % NN;
+		int target = rand() % NN;
+		int timeStart = rand() % timeLimit;
+		if ((source == target) || ((timeLimit - timeStart) < 11))
+		{
+			linkNum++;
+			continue;
+		}
+		int timeEnd = timeStart + rand() % (timeLimit - 10 - timeStart);
+		int delay = rand() % (timeLimit - timeEnd);
+
+		cout << "Link (" << source << "," << target << ") on [" << timeStart << "," << timeEnd << "], owlt: " << delay << endl;
+		for (int t = timeStart; t < timeEnd; t++)
+		{
+			bigBoi(source, target)(t, delay) = bigBoi(source, target)(t, delay) + Semiring::HopLimitedSemiring<hopLimit>(1);
+		}
+	}
+	cout << "Matrix generated" << endl;
+	cout << "Beginning shortest path generation" << endl;
+	cout << endl << "-----------" << endl;
+	auto Opt = Semiring::MinimalPaths(bigBoi, 2 * hopLimit, Semiring::ContactSemiring<Semiring::HopLimitedSemiring<hopLimit>, timeLimit>([](unsigned int t, unsigned int d) -> Semiring::HopLimitedSemiring<hopLimit> {
+		if ((t == 0) && (d == 0))
+		{
+			return Semiring::HopLimitedSemiring<hopLimit>(0);
+		}
+		else
+		{
+			return Semiring::HopLimitedSemiring<hopLimit>::Zero();
+		}
+	}));
+	cout << Opt;
+	cout << endl << "Shortest Paths found." << endl;
+
+	cout << endl << "Centralities\t(in)\t(out)\t(store)\t(avg):" << endl;
+	auto inCent = Semiring::IndegreeOptimalCentrality(Opt);
+	auto outCent = Semiring::OutdegreeOptimalCentrality(Opt);
+	auto storeCent = Semiring::StorageCentrality(Opt);
+	for (int i = 0; i < NN; i++)
+	{
+		cout << "["<< i << "]\t("<< inCent[i] << "), (" << outCent[i] << "), (" << storeCent[i] << "), (" << (inCent[i] + outCent[i] + storeCent[i])/3.0 << ")" << endl;
+	}
+	
+	/*
+	cout << "Testing minimal dependents on [1][2][3][4][5]" << endl;
+	cout << "True Dependents: [1], [2][3], [3][4][5]" << endl;
+	std::unordered_set<Semiring::FreeMonoid<5>, Semiring::StreamHash<Semiring::FreeMonoid<5>>> top;
+	top.insert(Semiring::FreeMonoid<5>(1));
+	top.insert(Semiring::FreeMonoid<5>(2));
+	top.insert(Semiring::FreeMonoid<5>(3));
+	top.insert(Semiring::FreeMonoid<5>(4));
+	top.insert(Semiring::FreeMonoid<5>(5));
+	auto test = [](std::unordered_set<Semiring::FreeMonoid<5>, Semiring::StreamHash<Semiring::FreeMonoid<5>>> set)->bool
+	{
+		if (set.count(Semiring::FreeMonoid<5>(1)) != 0)
+		{
+			return true;
+		}
+		else if ((set.count(Semiring::FreeMonoid<5>(2)) != 0) && (set.count(Semiring::FreeMonoid<5>(3)) != 0))
+		{
+			return true;
+		}
+		else if ((set.count(Semiring::FreeMonoid<5>(3)) != 0)&&(set.count(Semiring::FreeMonoid<5>(4)) != 0)&&(set.count(Semiring::FreeMonoid<5>(5)) != 0))
+		{
+			return true;
+		}
+		else
+		{
+			return false;
+		}
+	};
+	auto mDep = MinimalSubsets(top, test);
+	cout << "Dependents found:" << endl;
+	for (auto it = mDep.begin(); it != mDep.end(); it++)
+	{
+		for (auto it2 = (*it).begin(); it2 != (*it).end(); it2++)
+		{
+			cout << (*it2);
+		}
+		cout << endl;
+	}
+	*/
+
 
 	return 0;
 }

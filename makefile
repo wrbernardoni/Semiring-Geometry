@@ -19,13 +19,17 @@ endif
 
 INCLUDES = -I. -ISemiring -IMonoid -IUtilities
 
-all: BuildPath TropicalDStar
+all: BuildPath TropicalDStar StorageDemo
 
 BuildPath : 
 	mkdir -p build
 
 TropicalDStar : tropicalDStar.cpp
 	$(CC) $(CFLAGS) -o build/tropicalDStar tropicalDStar.cpp $(INCLUDES) $(LDFLAGS) 
+
+
+StorageDemo : StorageDemo.cpp
+	$(CC) $(CFLAGS) -o build/StorageDemo StorageDemo.cpp $(INCLUDES) $(LDFLAGS) 
 
 clean:
 	rm -r -f build/*
