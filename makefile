@@ -19,17 +19,25 @@ endif
 
 INCLUDES = -I. -ISemiring -IMonoid -IUtilities
 
+UTILITYSOURCES=$(wildcard Utilities/*.cpp)
+UTILITYOBJECTS=$(patsubst Utilities/%.cpp, %.o, $(UTILITYSOURCES))
+UTILITYCOMPILED=$(patsubst %.o, build/%.o, $(UTILITYOBJECTS))
+
 all: BuildPath TropicalDStar StorageDemo
 
 BuildPath : 
 	mkdir -p build
 
-TropicalDStar : tropicalDStar.cpp
-	$(CC) $(CFLAGS) -o build/tropicalDStar tropicalDStar.cpp $(INCLUDES) $(LDFLAGS) 
+TropicalDStar : Utilities tropicalDStar.cpp
+	$(CC) $(CFLAGS) -o build/tropicalDStar tropicalDStar.cpp $(UTILITYCOMPILED) $(INCLUDES) $(LDFLAGS) 
 
+StorageDemo : Utilities StorageDemo.cpp
+	$(CC) $(CFLAGS) -o build/StorageDemo StorageDemo.cpp $(UTILITYCOMPILED) $(INCLUDES) $(LDFLAGS) 
 
-StorageDemo : StorageDemo.cpp
-	$(CC) $(CFLAGS) -o build/StorageDemo StorageDemo.cpp $(INCLUDES) $(LDFLAGS) 
+Utilities : $(UTILITYOBJECTS)
+
+$(UTILITYOBJECTS) : %.o : Utilities/%.cpp
+	$(CC) $(CFLAGS) -o build/$@ -c $< $(INCLUDES) $(LDFLAGS)
 
 clean:
 	rm -r -f build/*
