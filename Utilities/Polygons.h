@@ -25,6 +25,10 @@ namespace Semiring
 			Polygon();
 
 			void AdjustBoundingBox(long double nbb);
+			Polygon Transpose() const;
+			// Applies the matrix [[a,b],[c,d]];
+			Polygon ApplyMatrix(double a, double b, double c, double d) const;
+
 			inline long double GetBoundingBox() { return boundingBox; };
 
 			friend bool SubsetEq(const Polygon& lhs, const Polygon& rhs);
@@ -37,7 +41,7 @@ namespace Semiring
 
 			friend PolygonCollection SetDifference(const Polygon& lhs, const Polygon& rhs);
 
-			friend PolygonCollection MatrixMultiply(const Polygon& lhs, const Polygon& rhs);
+			friend PolygonCollection Multiply(const Polygon& lhs, const Polygon& rhs);
 
 			Polygon& operator= (const Polygon& rhs);
 
@@ -86,8 +90,10 @@ namespace Semiring
 		class PolygonCollection
 		{
 		private:
-			std::list<Polygon> polygons;
+
 		public:
+			std::list<Polygon> polygons;
+			
 			PolygonCollection()
 			{
 
@@ -210,6 +216,44 @@ namespace Semiring
 				}
 
 				return sD;
+			}
+
+			PolygonCollection ApplyMatrix(double a, double b, double c, double d) const
+			{
+				PolygonCollection ret;
+				for (auto p : polygons)
+				{
+					ret.Add(p.ApplyMatrix(a,b,c,d));
+				}
+
+				return ret;
+			}
+
+			PolygonCollection Transpose() const
+			{
+				PolygonCollection ret;
+				for (auto p : polygons)
+				{
+					ret.Add(p.Transpose());
+				}
+
+				return ret;
+			}
+
+			// Treat the polygons as RxR matrices and multiply them
+			friend PolygonCollection Multiply(const PolygonCollection& lhs, const PolygonCollection& rhs)
+			{
+				PolygonCollection runningMult;
+
+				for (auto pL : lhs.polygons)
+				{
+					for (auto pR : rhs.polygons)
+					{
+						runningMult = Union(runningMult, Multiply(pL, pR));
+					}
+				}
+
+				return runningMult;
 			}
 
 			PolygonCollection& operator= (const PolygonCollection& rhs)

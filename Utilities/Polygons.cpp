@@ -38,7 +38,7 @@ PolygonCollection SetDifference(const Polygon& lhs, const Polygon& rhs)
 	return PolygonCollection();
 }
 
-PolygonCollection MatrixMultiply(const Polygon& lhs, const Polygon& rhs)
+PolygonCollection Multiply(const Polygon& lhs, const Polygon& rhs)
 {
 	// TODO return the matrix multiplication of our polygons
 
@@ -70,6 +70,20 @@ void Polygon::AdjustBoundingBox(long double nbb)
 {
 	if (nbb == boundingBox)
 		return;
-	
+
 	// TODO adjust the bounding box on the polygon
+}
+
+Polygon Polygon::Transpose() const
+{
+	//TODO return the transpose of this polygon
+
+	return Polygon();
+}
+
+Polygon Polygon::ApplyMatrix(double a, double b, double c, double d) const
+{
+	// TODO apply the matrix to this polygon and return the result
+
+	return Polygon();
 }
