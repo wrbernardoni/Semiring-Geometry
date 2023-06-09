@@ -62,6 +62,7 @@ namespace Semiring
 			Ring& operator=(const Ring& rhs)
 			{
 				closed = rhs.closed;
+				ray = rhs.ray;
 				vertices.clear();
 				for (auto p : rhs.vertices)
 				{
@@ -80,14 +81,12 @@ namespace Semiring
 		class Polygon
 		{
 		private:
-			long double boundingBox;
 			Ring boundary;
 			std::list<Ring> interiorRings;
 		public:
 			Polygon();
 			Polygon(Ring bound);
 
-			void AdjustBoundingBox(long double nbb);
 			Polygon Transpose() const;
 			// Applies the matrix [[a,b],[c,d]];
 			Polygon ApplyMatrix(double a, double b, double c, double d) const;

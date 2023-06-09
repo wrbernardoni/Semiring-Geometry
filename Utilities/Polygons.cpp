@@ -61,32 +61,15 @@ namespace Semiring::Polyhedral
 		*********************************/
 	Polygon::Polygon()
 	{
-		boundingBox = 1.0;
 	}
 
 	Polygon::Polygon(Ring bound)
 	{
 		boundary = bound;
-		long double bb = 1.0;
-		for (auto p : boundary.vertices)
-		{
-			if (abs(p.x) >= bb)
-			{
-				bb = 2.0 * abs(p.x);
-			}
-
-			if (abs(p.y) >= bb)
-			{
-				bb = 2.0 * abs(p.y);
-			}
-		}
-
-		boundingBox = bb;
 	}
 
 	Polygon& Polygon::operator= (const Polygon& rhs)
 	{
-		boundingBox = rhs.boundingBox;
 		boundary = rhs.boundary;
 
 		interiorRings.clear();
@@ -97,73 +80,6 @@ namespace Semiring::Polyhedral
 		}
 		return *this;
 
-	}
-
-	void Polygon::AdjustBoundingBox(long double nbb)
-	{
-		// TODO figure out if the bounding boxes are even needed since we are looking at rays now too
-
-		if (nbb == boundingBox)
-			return;
-
-		for (auto pI = boundary.vertices.begin(); pI != boundary.vertices.end(); pI++)
-		{
-			if ((abs(pI->x) >= boundingBox) || (abs(pI->y) >= boundingBox))
-			{
-				auto ppI = prev(pI,1);
-				if (pI == boundary.vertices.begin())
-				{
-					ppI = prev(boundary.vertices.end(),1);
-				}
-
-				double run = pI->x - ppI->x;
-				double rise = pI->y - ppI->y;
-
-				if (abs(pI->x) >= boundingBox)
-				{
-					pI->x = nbb * (pI->x >= 0 ? 1.0 : -1.0);
-					pI->y = (rise/run) * (pI->x - ppI->x);
-				}
-				else if (abs(pI->y) >= boundingBox)
-				{
-					pI->y = nbb * (pI->y >= 0 ? 1.0 : -1.0);
-					pI->x = (run/rise)*(pI->y - ppI->y);
-				}
-			}
-
-		}
-
-		for (auto iR : interiorRings)
-		{
-			for (auto pI = iR.vertices.begin(); pI != iR.vertices.end(); pI++)
-			{
-				if ((abs(pI->x) >= boundingBox) || (abs(pI->y) >= boundingBox))
-				{
-					auto ppI = prev(pI,1);
-					if (pI == iR.vertices.begin())
-					{
-						ppI = prev(iR.vertices.end(),1);
-					}
-
-					double run = pI->x - ppI->x;
-					double rise = pI->y - ppI->y;
-
-					if (abs(pI->x) >= boundingBox)
-					{
-						pI->x = nbb * (pI->x >= 0 ? 1.0 : -1.0);
-						pI->y = (rise/run) * (pI->x - ppI->x);
-					}
-					else if (abs(pI->y) >= boundingBox)
-					{
-						pI->y = nbb * (pI->y >= 0 ? 1.0 : -1.0);
-						pI->x = (run/rise)*(pI->y - ppI->y);
-					}
-				}
-
-			}
-		}
-
-		boundingBox = nbb;
 	}
 
 	Polygon Polygon::Transpose() const
@@ -197,8 +113,6 @@ namespace Semiring::Polyhedral
 	{
 		Polygon hp;
 
-		hp.boundingBox = max(max(abs(a.x), abs(a.y)), max(abs(b.x), abs(b.y))) + 1.0;
-
 		double run = b.x - a.x;
 		double rise = b.y - a.y;
 		if ((run == 0) && (rise == 0))
@@ -219,8 +133,6 @@ namespace Semiring::Polyhedral
 	{
 		Polygon hp;
 
-		hp.boundingBox = max(max(abs(a.x), abs(a.y)), max(abs(b.x), abs(b.y))) + 1.0;
-
 		double run = b.x - a.x;
 		double rise = b.y - a.y;
 		if ((run == 0) && (rise == 0))
@@ -240,8 +152,6 @@ namespace Semiring::Polyhedral
 	Polygon Polygon::Dot(Point a)
 	{
 		Polygon hp;
-
-		hp.boundingBox = max(abs(a.x), abs(a.y)) + 1.0;
 
 		hp.boundary.vertices.push_back(a);
 		hp.boundary.ray = false;
