@@ -4,8 +4,6 @@
 #include <list>
 #include <iostream>
 
-// TODO: Figure out how to display/print polygons (especially since hashing is off of print)
-// TODO: Do the 3d intersections and shadows ect.
 
 namespace Semiring
 {
