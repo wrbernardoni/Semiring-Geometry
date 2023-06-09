@@ -38,17 +38,38 @@ PolygonCollection SetDifference(const Polygon& lhs, const Polygon& rhs)
 	return PolygonCollection();
 }
 
+PolygonCollection MatrixMultiply(const Polygon& lhs, const Polygon& rhs)
+{
+	// TODO return the matrix multiplication of our polygons
+
+	// Step 1: Find rhs transpose
+	// Step 2: Explode lhs vertically and rhs as a skew
+	// Step 3: Compute the intersection of their 3d shapes
+	// Step 4: Find the shadow of the intersection on the e1-e3 plane
+	// Step 5: Skew the resulting polygons by [[1,0],[1,-1]] -- this is your resulting polygon
+
+	return PolygonCollection();
+}
+
 
 /*
 			Polygon core functions
 */
 Polygon::Polygon()
 {
-	
+	boundingBox = 1.0;
 }
 
 Polygon& Polygon::operator= (const Polygon& rhs)
 {
 	// TODO copy polygon
 	return *this;
+}
+
+void Polygon::AdjustBoundingBox(long double nbb)
+{
+	if (nbb == boundingBox)
+		return;
+	
+	// TODO adjust the bounding box on the polygon
 }

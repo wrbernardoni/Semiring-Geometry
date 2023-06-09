@@ -2,6 +2,10 @@
 #define POLYGONS_H_
 
 #include <list>
+#include <iostream>
+
+// TODO: Figure out how to display/print polygons (especially since hashing is off of print)
+// TODO: Do the 3d intersections and shadows ect.
 
 namespace Semiring
 {
@@ -16,9 +20,12 @@ namespace Semiring
 		class Polygon
 		{
 		private:
-
+			long double boundingBox;
 		public:
 			Polygon();
+
+			void AdjustBoundingBox(long double nbb);
+			inline long double GetBoundingBox() { return boundingBox; };
 
 			friend bool SubsetEq(const Polygon& lhs, const Polygon& rhs);
 
@@ -29,6 +36,8 @@ namespace Semiring
 			friend PolygonCollection Intersect(const Polygon& lhs, const Polygon& rhs);
 
 			friend PolygonCollection SetDifference(const Polygon& lhs, const Polygon& rhs);
+
+			friend PolygonCollection MatrixMultiply(const Polygon& lhs, const Polygon& rhs);
 
 			Polygon& operator= (const Polygon& rhs);
 
@@ -60,6 +69,15 @@ namespace Semiring
 			inline friend bool operator>(const Polygon& lhs, const Polygon& rhs)
 			{
 				return (lhs >= rhs) && !(rhs >= lhs);
+			}
+
+			friend std::ostream& operator<<(std::ostream& os, const Polygon& ts)
+			{
+				os << "[";
+				// TODO: Print polygon
+
+				os << "]";
+				return os;
 			}
 		};
 
@@ -233,6 +251,23 @@ namespace Semiring
 			inline friend bool operator>(const PolygonCollection& lhs, const PolygonCollection& rhs)
 			{
 				return (lhs >= rhs) && !(rhs >= lhs);
+			}
+
+			friend std::ostream& operator<<(std::ostream& os, const PolygonCollection& ts)
+			{
+				bool after = false;
+				os << "{";
+				for (auto p : ts.polygons)
+				{
+					if (after)
+						os << ", ";
+					else
+						after = true;
+					os << p;
+				}
+
+				os << "}";
+				return os;
 			}
 		};
 
