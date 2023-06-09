@@ -5,11 +5,73 @@
 #include <iostream>
 
 
+// TODO -- Will need to rewrite/specialize our hashing
+// function for our polygons, as they are not guaranteed
+// a unique way of printing.
+
 namespace Semiring
 {
 	namespace Polyhedral
 	{
 		class PolygonCollection;
+
+		struct Point
+		{
+			double x;
+			double y;
+
+			Point()
+			{
+				x = 0;
+				y = 0;
+			}
+
+			Point(double nX, double nY)
+			{
+				x = nX;
+				y = nY;
+			}
+
+			Point& operator=(const Point& rhs)
+			{
+				x = rhs.x;
+				y = rhs.y;
+
+				return *this;
+			}
+		};
+
+		struct Ring
+		{
+			// Vertices stored in counterclockwise order (interior is to the right of the line)
+			std::list<Point> vertices;
+
+			// Flag to mark if the edges are included as part of the ring
+			bool closed;
+
+			// If this is false then the ring is assumed to be a bounded ring
+			// If it is true then the two endpoints are rays and mark direction to shoot to infinity
+			bool ray;
+
+			Ring()
+			{
+				closed = true;
+				ray = false;
+			}
+
+			Ring& operator=(const Ring& rhs)
+			{
+				closed = rhs.closed;
+				vertices.clear();
+				for (auto p : rhs.vertices)
+				{
+					Point nP = p;
+					vertices.push_back(nP);
+				}
+
+				return *this;
+			}
+		};
 
 		// Has list of points outlining exterior boundary and vector of list of points
 		// outlining different interior boundaries
@@ -19,8 +81,11 @@ namespace Semiring
 		{
 		private:
 			long double boundingBox;
+			Ring boundary;
+			std::list<Ring> interiorRings;
 		public:
 			Polygon();
+			Polygon(Ring bound);
 
 			void AdjustBoundingBox(long double nbb);
 			Polygon Transpose() const;
@@ -77,10 +142,53 @@ namespace Semiring
 			{
 				os << "[";
 				// TODO: Print polygon
+				if (ts.boundary.ray)
+					os << "<";
+				if (!ts.boundary.closed)
+					os << "~";
+				for (auto p : ts.boundary.vertices)
+				{
+					os << "(" << (abs(p.x) < ts.boundingBox ? std::to_string(p.x) : p.x > 0 ? "inf" : "-inf") << "," << (abs(p.y) < ts.boundingBox ? std::to_string(p.y) : p.y > 0 ? "inf" : "-inf") << ")";
+				}
+				if (!ts.boundary.closed)
+					os << "~";
+				if (ts.boundary.ray)
+					os << ">";
+
+				for (auto iR : ts.interiorRings)
+				{
+					os << "|";
+
+					if (iR.ray)
+					{
+						os << "<";
+					}
+
+					if (!iR.closed)
+						os << "~";
+
+					for (auto p : iR.vertices)
+					{
+						os << "(" << (abs(p.x) < ts.boundingBox ? std::to_string(p.x) : p.x > 0 ? "inf" : "-inf") << "," << (abs(p.y) < ts.boundingBox ? std::to_string(p.y) : p.y > 0 ? "inf" : "-inf") << ")";
+					}
+
+					if (!iR.closed)
+						os << "~";
+					if (iR.ray)
+					{
+						os << ">";
+					}
+				}
 
 				os << "]";
 				return os;
 			}
+
+			static Polygon UnitBox();
+			static Polygon HalfPlane(Point, Point);
+			static Polygon Line(Point, Point);
+			static Polygon Dot(Point);
+			// TODO also do line, half plane, and point
 		};
 
 		// List of disjoint polygons -- each polygon must be fully disjoint from one another

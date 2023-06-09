@@ -1,5 +1,7 @@
 #include <Polygons.h>
+#include <cmath>
 
+using namespace std;
 using namespace Semiring;
 using namespace Semiring::Polyhedral;
 
@@ -62,39 +64,201 @@ namespace Semiring::Polyhedral
 		boundingBox = 1.0;
 	}
 
+	Polygon::Polygon(Ring bound)
+	{
+		boundary = bound;
+		long double bb = 1.0;
+		for (auto p : boundary.vertices)
+		{
+			if (abs(p.x) >= bb)
+			{
+				bb = 2.0 * abs(p.x);
+			}
+
+			if (abs(p.y) >= bb)
+			{
+				bb = 2.0 * abs(p.y);
+			}
+		}
+
+		boundingBox = bb;
+	}
+
 	Polygon& Polygon::operator= (const Polygon& rhs)
 	{
-		// TODO copy polygon
+		boundingBox = rhs.boundingBox;
+		boundary = rhs.boundary;
+
+		interiorRings.clear();
+		for (auto iR : rhs.interiorRings)
+		{
+			Ring nR = iR;
+			interiorRings.push_back(iR);
+		}
 		return *this;
+
 	}
 
 	void Polygon::AdjustBoundingBox(long double nbb)
 	{
+		// TODO figure out if the bounding boxes are even needed since we are looking at rays now too
+
 		if (nbb == boundingBox)
 			return;
 
-		// TODO adjust the bounding box on the polygon
+		for (auto pI = boundary.vertices.begin(); pI != boundary.vertices.end(); pI++)
+		{
+			if ((abs(pI->x) >= boundingBox) || (abs(pI->y) >= boundingBox))
+			{
+				auto ppI = prev(pI,1);
+				if (pI == boundary.vertices.begin())
+				{
+					ppI = prev(boundary.vertices.end(),1);
+				}
+
+				double run = pI->x - ppI->x;
+				double rise = pI->y - ppI->y;
+
+				if (abs(pI->x) >= boundingBox)
+				{
+					pI->x = nbb * (pI->x >= 0 ? 1.0 : -1.0);
+					pI->y = (rise/run) * (pI->x - ppI->x);
+				}
+				else if (abs(pI->y) >= boundingBox)
+				{
+					pI->y = nbb * (pI->y >= 0 ? 1.0 : -1.0);
+					pI->x = (run/rise)*(pI->y - ppI->y);
+				}
+			}
+
+		}
+
+		for (auto iR : interiorRings)
+		{
+			for (auto pI = iR.vertices.begin(); pI != iR.vertices.end(); pI++)
+			{
+				if ((abs(pI->x) >= boundingBox) || (abs(pI->y) >= boundingBox))
+				{
+					auto ppI = prev(pI,1);
+					if (pI == iR.vertices.begin())
+					{
+						ppI = prev(iR.vertices.end(),1);
+					}
+
+					double run = pI->x - ppI->x;
+					double rise = pI->y - ppI->y;
+
+					if (abs(pI->x) >= boundingBox)
+					{
+						pI->x = nbb * (pI->x >= 0 ? 1.0 : -1.0);
+						pI->y = (rise/run) * (pI->x - ppI->x);
+					}
+					else if (abs(pI->y) >= boundingBox)
+					{
+						pI->y = nbb * (pI->y >= 0 ? 1.0 : -1.0);
+						pI->x = (run/rise)*(pI->y - ppI->y);
+					}
+				}
+
+			}
+		}
+
+		boundingBox = nbb;
 	}
 
 	Polygon Polygon::Transpose() const
 	{
-		//TODO return the transpose of this polygon
-
-		return Polygon();
+		return ApplyMatrix(0,1,1,0);
 	}
 
 	Polygon Polygon::ApplyMatrix(double a, double b, double c, double d) const
 	{
 		// TODO apply the matrix to this polygon and return the result
-
+		// May need to reverse all rings if the determinant is negative
+		// If the determinant is zero then maybe kill off all interior rings
 		return Polygon();
 	}
+
+	/*	*********************************
+			Default polygon shapes
+		*********************************/
+	Polygon Polygon::UnitBox()
+	{
+		Ring ub;
+		ub.vertices.push_back(Point(0,0));
+		ub.vertices.push_back(Point(1,0));
+		ub.vertices.push_back(Point(1,1));
+		ub.vertices.push_back(Point(0,1));
+
+		return Polygon(ub);
+	}
+
+	Polygon Polygon::HalfPlane(Point a, Point b)
+	{
+		Polygon hp;
+
+		hp.boundingBox = max(max(abs(a.x), abs(a.y)), max(abs(b.x), abs(b.y))) + 1.0;
+
+		double run = b.x - a.x;
+		double rise = b.y - a.y;
+		if ((run == 0) && (rise == 0))
+		{
+			// Invalid input
+			throw("Ill defined HalfPlane");
+		}
+
+		hp.boundary.vertices.push_back(a);
+		hp.boundary.vertices.push_back(b);
+		hp.boundary.ray = true;
+		
+
+		return hp;
+	}
+
+	Polygon Polygon::Line(Point a, Point b)
+	{
+		Polygon hp;
+
+		hp.boundingBox = max(max(abs(a.x), abs(a.y)), max(abs(b.x), abs(b.y))) + 1.0;
+
+		double run = b.x - a.x;
+		double rise = b.y - a.y;
+		if ((run == 0) && (rise == 0))
+		{
+			// Invalid input
+			throw("Ill defined Line");
+		}
+
+		hp.boundary.vertices.push_back(a);
+		hp.boundary.vertices.push_back(b);
+		hp.boundary.ray = false;
+		
+
+		return hp;
+	}
+
+	Polygon Polygon::Dot(Point a)
+	{
+		Polygon hp;
+
+		hp.boundingBox = max(abs(a.x), abs(a.y)) + 1.0;
+
+		hp.boundary.vertices.push_back(a);
+		hp.boundary.ray = false;
+		
+
+		return hp;
+	}
+
 
 	/*	*********************************
 			Polygon Collection utility functions
 		*********************************/
 	bool SubsetEq(const Polygon& lhs, const PolygonCollection& rhs)
 	{
+		if (lhs == Polygon())
+			return true;
+
 		for (auto p : rhs.polygons)
 		{
 			if (SubsetEq(lhs, p))
