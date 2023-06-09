@@ -90,184 +90,38 @@ namespace Semiring
 		class PolygonCollection
 		{
 		private:
-
-		public:
 			std::list<Polygon> polygons;
-
+		public:
 			PolygonCollection()
 			{
 
 			}
 
 			// Add in a polygon to the collection
-			PolygonCollection& Add(const Polygon add)
-			{
-				std::list<Polygon> gons;
-				Polygon p = add;
-
-				for (auto poly : polygons)
-				{
-					if (Overlap(poly, p))
-					{
-						p = Union(poly, p);
-					}
-					else
-					{
-						gons.push_back(poly);
-					}
-				}
-
-				if (p != Polygon())
-				{
-					gons.push_back(p);
-				}
-				
-				polygons = gons;
-
-				return *this;
-			}
+			PolygonCollection& Add(const Polygon add);
 
 			// Check that a given polygon is contained in the collection
-			friend bool SubsetEq(const Polygon& lhs, const PolygonCollection& rhs)
-			{
-				for (auto p : rhs.polygons)
-				{
-					if (SubsetEq(lhs, p))
-					{
-						return true;
-					}
-				}
-				return false;
-			}
+			friend bool SubsetEq(const Polygon& lhs, const PolygonCollection& rhs);
 
 			// Check that our collection is contained in a given polygon
-			friend bool SubsetEq(const PolygonCollection& lhs, const Polygon& rhs)
-			{
-				for (auto p : lhs.polygons)
-				{
-					if (!SubsetEq(p, rhs))
-					{
-						return false;
-					}
-				}
-				return true;
-			}
+			friend bool SubsetEq(const PolygonCollection& lhs, const Polygon& rhs);
 
 			// Check that our collection is contained in another collection
-			friend bool SubsetEq(const PolygonCollection& lhs, const PolygonCollection& rhs)
-			{
-				for (auto p : lhs.polygons)
-				{
-					if (!SubsetEq(p, rhs))
-					{
-						return false;
-					}
-				}
-				return true;
-			}
+			friend bool SubsetEq(const PolygonCollection& lhs, const PolygonCollection& rhs);
 
-			friend PolygonCollection Union(const PolygonCollection& lhs, const PolygonCollection& rhs)
-			{
-				PolygonCollection uC;
+			friend PolygonCollection Union(const PolygonCollection& lhs, const PolygonCollection& rhs);
 
-				for (auto p : lhs.polygons)
-				{
-					uC.Add(p);
-				}
+			friend PolygonCollection Intersect(const PolygonCollection& lhs, const PolygonCollection& rhs);
 
-				for (auto p : rhs.polygons)
-				{
-					uC.Add(p);
-				}
+			friend PolygonCollection SetDifference(const PolygonCollection& lhs, const PolygonCollection& rhs);
 
-				return uC;
-			}
-
-			friend PolygonCollection Intersect(const PolygonCollection& lhs, const PolygonCollection& rhs)
-			{
-				PolygonCollection iN;
-
-				for (auto pL : lhs.polygons)
-				{
-					for (auto pR : rhs.polygons)
-					{
-						iN = Union(iN, Intersect(pL, pR));
-					}
-				}
-
-				return iN;
-			}
-
-			friend PolygonCollection SetDifference(const PolygonCollection& lhs, const PolygonCollection& rhs)
-			{
-				PolygonCollection sD;
-				for (auto pL : lhs.polygons)
-				{
-					PolygonCollection runningC;
-					runningC.Add(pL);
-
-					for (auto pR : rhs.polygons)
-					{
-						runningC = Intersect(runningC, SetDifference(pL,pR));
-					}
-
-					for (auto pI : runningC.polygons)
-					{
-						sD.Add(pI);
-					}
-				}
-
-				return sD;
-			}
-
-			PolygonCollection ApplyMatrix(double a, double b, double c, double d) const
-			{
-				PolygonCollection ret;
-				for (auto p : polygons)
-				{
-					ret.Add(p.ApplyMatrix(a,b,c,d));
-				}
-
-				return ret;
-			}
-
-			PolygonCollection Transpose() const
-			{
-				PolygonCollection ret;
-				for (auto p : polygons)
-				{
-					ret.Add(p.Transpose());
-				}
-
-				return ret;
-			}
+			PolygonCollection ApplyMatrix(double a, double b, double c, double d) const;
+			PolygonCollection Transpose() const;
 
 			// Treat the polygons as RxR matrices and multiply them
-			friend PolygonCollection Multiply(const PolygonCollection& lhs, const PolygonCollection& rhs)
-			{
-				PolygonCollection runningMult;
+			friend PolygonCollection Multiply(const PolygonCollection& lhs, const PolygonCollection& rhs);
 
-				for (auto pL : lhs.polygons)
-				{
-					for (auto pR : rhs.polygons)
-					{
-						runningMult = Union(runningMult, Multiply(pL, pR));
-					}
-				}
-
-				return runningMult;
-			}
-
-			PolygonCollection& operator= (const PolygonCollection& rhs)
-			{
-				polygons.clear();
-				for (auto p : rhs.polygons)
-				{
-					Polygon copy = p;
-					polygons.push_back(copy);
-				}
-				return *this;
-			}
+			PolygonCollection& operator= (const PolygonCollection& rhs);
 
 			inline friend bool operator<=(const PolygonCollection& lhs, const PolygonCollection& rhs)
 			{
