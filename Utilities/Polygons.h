@@ -93,14 +93,14 @@ namespace Semiring
 
 		public:
 			std::list<Polygon> polygons;
-			
+
 			PolygonCollection()
 			{
 
 			}
 
 			// Add in a polygon to the collection
-			void Add(const Polygon add)
+			PolygonCollection& Add(const Polygon add)
 			{
 				std::list<Polygon> gons;
 				Polygon p = add;
@@ -123,6 +123,8 @@ namespace Semiring
 				}
 				
 				polygons = gons;
+
+				return *this;
 			}
 
 			// Check that a given polygon is contained in the collection
