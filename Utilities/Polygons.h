@@ -91,8 +91,6 @@ namespace Semiring
 			// Applies the matrix [[a,b],[c,d]];
 			Polygon ApplyMatrix(double a, double b, double c, double d) const;
 
-			inline long double GetBoundingBox() { return boundingBox; };
-
 			friend bool SubsetEq(const Polygon& lhs, const Polygon& rhs);
 
 			friend bool Overlap(const Polygon& lhs, const Polygon& rhs);
@@ -147,7 +145,7 @@ namespace Semiring
 					os << "~";
 				for (auto p : ts.boundary.vertices)
 				{
-					os << "(" << (abs(p.x) < ts.boundingBox ? std::to_string(p.x) : p.x > 0 ? "inf" : "-inf") << "," << (abs(p.y) < ts.boundingBox ? std::to_string(p.y) : p.y > 0 ? "inf" : "-inf") << ")";
+					os << "(" << p.x << "," << p.y << ")";
 				}
 				if (!ts.boundary.closed)
 					os << "~";
@@ -168,7 +166,7 @@ namespace Semiring
 
 					for (auto p : iR.vertices)
 					{
-						os << "(" << (abs(p.x) < ts.boundingBox ? std::to_string(p.x) : p.x > 0 ? "inf" : "-inf") << "," << (abs(p.y) < ts.boundingBox ? std::to_string(p.y) : p.y > 0 ? "inf" : "-inf") << ")";
+						os << "(" << p.x << "," << p.y << ")";
 					}
 
 					if (!iR.closed)
