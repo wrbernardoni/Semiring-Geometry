@@ -23,7 +23,7 @@ UTILITYSOURCES=$(wildcard Utilities/*.cpp)
 UTILITYOBJECTS=$(patsubst Utilities/%.cpp, %.o, $(UTILITYSOURCES))
 UTILITYCOMPILED=$(patsubst %.o, build/%.o, $(UTILITYOBJECTS))
 
-all: BuildPath TropicalDStar StorageDemo PolygonTest
+all: BuildPath TropicalDStar StorageDemo PolygonTest CGRTest
 
 BuildPath : 
 	mkdir -p build
@@ -34,6 +34,8 @@ TropicalDStar : Utilities tropicalDStar.cpp
 PolygonTest : Utilities PolygonTests.cpp
 	$(CC) $(CFLAGS) -o build/PolygonTests PolygonTests.cpp $(UTILITYCOMPILED) $(INCLUDES) $(LDFLAGS) 
 
+CGRTest : Utilities CGRTest.cpp
+	$(CC) $(CFLAGS) -o build/CGRTest CGRTest.cpp $(UTILITYCOMPILED) $(INCLUDES) $(LDFLAGS) 
 
 StorageDemo : Utilities StorageDemo.cpp
 	$(CC) $(CFLAGS) -o build/StorageDemo StorageDemo.cpp $(UTILITYCOMPILED) $(INCLUDES) $(LDFLAGS) 

@@ -8,5 +8,6 @@
 #include "Matrix.h"
 #include "HopLimitedSemiring.h"
 #include "FreeSemiring.h"
+#include "CGRSemiring.h"
 
 #endif
