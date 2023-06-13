@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <limits>
 #include <iostream>
+#include <list>
 
 // TODO implement this
 
@@ -252,6 +253,160 @@ namespace Semiring
 			}
 		}
 
+		// If xInf > 0 then x is seen as positive infinity, if xInf < 0 then x is seen as -inf
+		bool Contains(double x, double y, int xInf = 0, int yInf = 0) const
+		{
+			if (justContact)
+			{
+				if (yInf < 0)
+				{
+					if (xInf >= 0)
+						return false;
+
+					if (!lContact.lInf)
+						return false;
+				}
+				else if (yInf > 0)
+				{
+					if (xInf <= 0)
+						return false;
+
+					if (!lContact.rInf)
+						return false;
+				}
+				else
+				{
+					if (xInf != 0)
+						return false;
+
+					if ((y < lContact.start) || (y > lContact.end))
+						return false;
+
+					if (x != (y + lContact.delay))
+						return false;
+				}
+
+				return true;
+			}
+
+			if (xInf > 0)
+			{
+				if (!rContact.rInf)
+				{
+					return false;
+				}
+
+				if (yInf < 0)
+				{
+					return lContact.lInf;
+				}
+				else if (yInf > 0)
+				{
+					return lContact.rInf;
+				}
+				else
+				{
+					if (lContact.lInf && lContact.rInf)
+					{
+						return true;
+					}
+					else if (lContact.lInf)
+					{
+						return (y <= lContact.end);
+					}
+					else if (lContact.rInf)
+					{
+						return (y >= lContact.start);
+					}
+					else
+					{
+						return (y <= lContact.end) && (y >= lContact.start);
+					}
+				}
+			}
+			else if (xInf < 0)
+			{
+				if (yInf >= 0)
+					return false;
+				return rContact.lInf && lContact.lInf;
+			}
+			else
+			{
+				if (yInf < 0)
+				{
+					if (!lContact.lInf)
+						return false;
+
+					// Check that x is between a and b
+					if (!rContact.lInf)
+					{
+						if (x < (rContact.delay + rContact.start))
+							return false;
+					}
+
+					if (!rContact.rInf)
+					{
+						if (x > (rContact.end + rContact.delay))
+							return false;
+					}
+
+					return true;
+				}
+				else if (yInf > 0)
+				{
+					return false;
+				}
+
+				// x and y finite
+
+				// Check y is between c and e
+				if (!(lContact.lInf))
+				{
+					if (y < (lContact.start))
+						return false;
+				}
+				
+				if (!lContact.rInf)
+				{
+					if (y > (lContact.end))
+						return false;
+				}
+
+				// Check if x is contained
+				// Check if in sloping region or flat
+				if ((rContact.lInf) || (y >= rContact.start))
+				{
+					// Sloping region
+					// check if x is between y + delay and b
+					if (x < (y + rContact.delay))
+						return false;
+
+					if (!rContact.rInf)
+					{
+						if (x > (rContact.end + rContact.delay))
+							return false;
+					}
+				}
+				else
+				{
+					// Flat region check if x is between a and b
+					if (!rContact.lInf)
+					{
+						if (x < (rContact.delay + rContact.start))
+							return false;
+					}
+
+					if (!rContact.rInf)
+					{
+						if (x > (rContact.end + rContact.delay))
+							return false;
+					}
+				}
+
+				return true;
+			}
+		}
+
 		friend std::ostream& operator<<(std::ostream& os, const CSC_Contact& ts)
 		{
 			if (!ts.justContact)
@@ -260,27 +415,135 @@ namespace Semiring
 				os << ts.lContact;
 			return os;
 		}
+
+		inline friend bool operator==(const CSC_Contact& lhs, const CSC_Contact& rhs) 
+		{
+			return (lhs <= rhs)&&(rhs <= lhs);
+		}
+
+		inline friend bool operator!=(const CSC_Contact& lhs, const CSC_Contact& rhs) 
+		{
+			return !(lhs == rhs);
+		}
+
+		inline friend bool operator<=(const CSC_Contact& lhs, const CSC_Contact& rhs)
+		{
+			if (lhs.justContact)
+			{
+				if (lhs.lContact.lInf)
+				{
+					if (!rhs.Contains(0, 0, -1, -1))
+						return false;
+				}
+				else
+				{
+					if (!rhs.Contains(lhs.lContact.start + lhs.lContact.delay, lhs.lContact.start, 0, 0))
+						return false;
+				}
+
+				if (lhs.lContact.rInf)
+				{
+					if (!rhs.Contains(0, 0, 1, 1))
+						return false;
+				}
+				else
+				{
+					if (!rhs.Contains(lhs.lContact.end + lhs.lContact.delay, lhs.lContact.end, 0, 0))
+						return false;
+				}
+
+				if (lhs.lContact.lInf && lhs.lContact.rInf)
+				{
+					if (!rhs.Contains(lhs.lContact.delay, 0, 0, 0))
+						return false;
+				}
+
+				return true;
+			}
+
+			// Check if each corner of lhs is contained in rhs
+			bool cInfinite = lhs.lContact.lInf;
+			double c = lhs.lContact.start;
+
+			bool eInfinite = lhs.lContact.rInf;
+			double e = lhs.lContact.end;
+
+			bool aInfinite = lhs.rContact.lInf;
+			double a = lhs.rContact.delay + lhs.rContact.start;
+
+			bool bInfinite = lhs.rContact.rInf;
+			double b = lhs.rContact.delay + lhs.rContact.end;
+
+			bool dInfinite = lhs.rContact.lInf;
+			double d = lhs.rContact.start;
+
+			if (!rhs.Contains(a,c,(aInfinite? -1 : 0), (cInfinite ? -1 : 0)))
+			{
+				return false;
+			}
+
+			if (!rhs.Contains(b,c,(bInfinite? 1 : 0), (cInfinite ? -1 : 0)))
+			{
+				return false;
+			}
+
+			if (!rhs.Contains(a,d,(aInfinite? -1 : 0), (dInfinite ? -1 : 0)))
+			{
+				return false;
+			}
+
+			if (!rhs.Contains(b,e,(bInfinite? 1 : 0), (eInfinite ? 1 : 0)))
+			{
+				return false;
+			}
+
+			if (!rhs.Contains(e + lhs.rContact.delay,e,(eInfinite? 1 : 0), (eInfinite ? 1 : 0)))
+			{
+				return false;
+			}
+
+			return true;
+		}
+
+		inline friend bool operator>=(const CSC_Contact& lhs, const CSC_Contact& rhs)
+		{
+			return rhs <= lhs;
+		}
+
+		inline friend bool operator<(const CSC_Contact& lhs, const CSC_Contact& rhs)
+		{
+			return (lhs <= rhs) && !(rhs <= rhs);
+		}
+
+		inline friend bool operator>(const CSC_Contact& lhs, const CSC_Contact& rhs)
+		{
+			return rhs < lhs;
+		}
 	};
 
 	class CGRSemiring
 	{
 	protected:
-		bool x;
+		std::list<CSC_Contact> contacts;
 
 	public:
 		CGRSemiring()
 		{
-			x = false;
 		}
 
-		CGRSemiring(bool n)
+		CGRSemiring(CSC_Contact c)
 		{
-			x = n;
+			Add(c);
+		}
+
+		CGRSemiring(Contact c)
+		{
+			Add(CSC_Contact(c));
 		}
 
 		inline friend bool operator==(const CGRSemiring& lhs, const CGRSemiring& rhs) 
 		{
-			return lhs.x == rhs.x;
+			return (lhs <= rhs)&&(rhs <= lhs);
 		}
 
 		inline friend bool operator!=(const CGRSemiring& lhs, const CGRSemiring& rhs) 
@@ -290,45 +553,75 @@ namespace Semiring
 
 		inline friend bool operator<=(const CGRSemiring& lhs, const CGRSemiring& rhs)
 		{
-			return (lhs == (lhs + rhs));
+			// TODO
+			return false;
 		}
 
 		inline friend bool operator>=(const CGRSemiring& lhs, const CGRSemiring& rhs)
 		{
-			return (rhs == (lhs + rhs));
+			return rhs <= lhs;
 		}
 
 		inline friend bool operator<(const CGRSemiring& lhs, const CGRSemiring& rhs)
 		{
-			return (lhs <= rhs) && (lhs != rhs);
+			return (lhs <= rhs) && !(rhs <= rhs);
 		}
 
 		inline friend bool operator>(const CGRSemiring& lhs, const CGRSemiring& rhs)
 		{
-			return (lhs >= rhs) && (lhs != rhs);
+			return rhs < lhs;
 		}
 
 		const CGRSemiring operator+ (const CGRSemiring& rhs) const
 		{
-
-			return CGRSemiring(x || rhs.x);
+			// TODO
+			return CGRSemiring();
 		}
 
 		const CGRSemiring operator* (const CGRSemiring& rhs) const
 		{
+			// TODO
+			return CGRSemiring();
+		}
 
-			return CGRSemiring(x && rhs.x);
+		CGRSemiring& Add(CSC_Contact c)
+		{
+			// TODO
+
+			return *this;
 		}
 
 		CGRSemiring& operator= (const CGRSemiring& rhs)
 		{
-			x = rhs.x;
+			contacts.clear();
+			for (auto c : rhs.contacts)
+			{
+				CSC_Contact nC = c;
+				contacts.push_back(nC);
+			}
+
 			return *this;
 		}
 
 		friend std::ostream& operator<<(std::ostream& os, const CGRSemiring& ts)
 		{
-			os << ts.x;
+			os << "{";
+			bool first = true;
+			for (auto c : ts.contacts)
+			{
+				if (!first)
+				{
+					os << ", ";
+				}
+				else
+				{
+					first = false;
+				}
+
+				os << c;
+			}
+			os << "}";
+
 			return os;
 		}
 
@@ -339,7 +632,12 @@ namespace Semiring
 
 		static CGRSemiring One()
 		{
-			return CGRSemiring(true);
+			return CGRSemiring(Contact());
+		}
+
+		static CGRSemiring Storage()
+		{
+			return CGRSemiring(CSC_Contact());
 		}
 	};
 }

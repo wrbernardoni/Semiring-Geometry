@@ -28,6 +28,41 @@ int main()
 	cout << endl;
 	cout << CSC_Contact() * CSC_Contact(Contact(0,10,3)) * CSC_Contact();
 	cout << endl;
+	cout << endl;
+
+	cout << CSC_Contact(Contact(0,100,10)) * CSC_Contact() * CSC_Contact(Contact(8,13,2)) * CSC_Contact() * CSC_Contact(Contact(0,100,10)) << endl;
+	cout << CSC_Contact() * CSC_Contact(Contact(0,100,10)) * CSC_Contact() * CSC_Contact(Contact(8,13,2)) * CSC_Contact() * CSC_Contact(Contact(0,100,10)) * CSC_Contact()<< endl;
+	
+	cout << endl;
+	cout << endl;
+	cout << "Example 2.39:"<<endl;
+	cout << "Top: " << CSC_Contact() * CSC_Contact(Contact(0,1,10)) * CSC_Contact() * CSC_Contact(Contact(10,11,5)) * CSC_Contact() << endl;
+	cout << "Bottom: " << CSC_Contact() * CSC_Contact(Contact(0,1,0)) * CSC_Contact() * CSC_Contact(Contact(5,6,0)) * CSC_Contact() << endl;
+	cout << "Bottom contains top? " << (CSC_Contact() * CSC_Contact(Contact(0,1,0)) * CSC_Contact() * CSC_Contact(Contact(5,6,0)) * CSC_Contact() <= CSC_Contact() * CSC_Contact(Contact(0,1,10)) * CSC_Contact() * CSC_Contact(Contact(10,11,5)) * CSC_Contact()) << endl;
 	cout << "Donezo" << endl;
+
+	cout << endl;
+	cout << endl;
+	auto c1 = CSC_Contact() * CSC_Contact(Contact(0,10,3)) * CSC_Contact();
+	auto c2 = CSC_Contact() * CSC_Contact(Contact(0,100,2)) * CSC_Contact();
+	cout << c1 << " " << c2 << endl;
+	cout << (CSC_Contact(Contact(0,10,3)) <= c1) << " " << (c1 <= CSC_Contact(Contact(0,10,3))) << endl;
+	cout << (CSC_Contact(Contact(0,10,3)) <= c2) << " " << (c2 <= CSC_Contact(Contact(0,10,3))) << endl;
+	cout << (c2 <= c1) << endl;
+	cout << (c1 <= c2) << endl;
+	cout << (c1 <= c1) << endl;
+	cout << (c2 <= c2) << endl;
+
+	auto c3 = c1 * CSC_Contact(Contact(0,5,2));
+	cout << c3 << endl;
+	cout << (c2 <= c3) << " " << (c3 <= c2) << endl;
+	
+	cout << endl;
+	cout << endl;
+	cout << "CGR Semiring!" << endl;
+	cout << "Zero: " << CGRSemiring::Zero() << endl;
+	cout << "One: " << CGRSemiring::One() << endl;
+	cout << "Storage: " << CGRSemiring::Storage() << endl;
+
 	return 0;
 }
