@@ -5,8 +5,9 @@
 #include <limits>
 #include <iostream>
 #include <list>
+#include <set>
+#include <map>
 
-// TODO implement this
 
 // This is the minimal semiring to do contact graph routing
 // elements are sums + products of contacts (start time, end time, one way light time)
@@ -130,13 +131,229 @@ namespace Semiring
 		}
 	};
 
+	struct Interval
+	{
+		double start;
+		double end;
+		int startInf;
+		int endInf;
+		bool empty;
+
+		Interval()
+		{
+			start = 0;
+			end = 0;
+			empty = true;
+			startInf = 0;
+			endInf = 0;
+		}
+
+		Interval(double s, double e, int sI = 0, int eI = 0)
+		{
+			start = s;
+			end = e;
+			startInf = sI;
+			endInf = eI;
+			empty = ((startInf == endInf) && (startInf == 0) && (end < start));
+		}
+
+		friend std::ostream& operator<<(std::ostream& os, const Interval& ts)
+		{
+			if (!ts.empty)
+				os << "[" << (ts.startInf < 0 ? "-inf" : (ts.startInf > 0 ? "inf" : std::to_string(ts.start)))
+				 << "," 
+				 << (ts.endInf < 0 ? "-inf" : (ts.endInf > 0 ? "inf" : std::to_string(ts.end))) << "]";
+			else
+				os << "[]";
+			return os;
+		}
+
+		Interval& operator= (const Interval& rhs)
+		{
+			start = rhs.start;
+			end = rhs.end;
+			empty = rhs.empty;
+			startInf = rhs.startInf;
+			endInf = rhs.endInf;
+			return *this;
+		}
+	};
+
+	class CGRSemiring;
+
 	class CSC_Contact
 	{
 	private:
 		Contact lContact;
 		Contact rContact;
 		bool justContact;
+
+		Interval Width(double y, int yInf = 0)
+		{
+			bool cInfinite = lContact.lInf;
+			double c = lContact.start;
+
+			bool eInfinite = lContact.rInf;
+			double e = lContact.end;
+
+			bool aInfinite = rContact.lInf;
+			double a = rContact.delay + rContact.start;
+
+			bool bInfinite = rContact.rInf;
+			double b = rContact.delay + rContact.end;
+
+			bool dInfinite = rContact.lInf;
+			double d = rContact.start;
+
+			if (yInf < 0)
+			{
+				if (lContact.lInf)
+				{
+					// Get interval [a,b]
+					if (aInfinite && bInfinite)
+					{
+						return Interval(0,0,-1,1);
+					}
+					else if (aInfinite)
+					{
+						return Interval(0,b,-1,0);
+					}
+					else if (bInfinite)
+					{
+						return Interval(a,0,0,1);
+					}
+					else
+					{
+						return Interval(a,b);
+					}
+
+				}
+				else
+				{
+					return Interval();
+				}
+			}
+			else if (yInf > 0)
+			{
+				if (lContact.rInf)
+				{
+					return Interval(0,0,1,1);
+				}
+				else
+				{
+					return Interval();
+				}
+			}
+			else
+			{
+				// y finite
+				if (!eInfinite && (y > e))
+					return Interval();
+
+				if (!cInfinite && (y < c))
+					return Interval();
+
+				if (!dInfinite && (y < d))
+				{
+					// In boxy area
+					if (bInfinite)
+					{
+						return Interval(a,0,0,1);
+					}
+					else
+					{
+						return Interval(a,b);
+					}
+				}
+				else
+				{
+					// In slanted area
+					if (bInfinite)
+					{
+						return Interval(y + rContact.delay,0,0,1);
+					}
+					else
+					{
+						return Interval(y + rContact.delay,b);
+					}
+				}
+			}
+		}
+
+		std::list<double> clippedIntersections(CSC_Contact& other) const
+		{
+			std::list<double> clips;
+			/// Return list of y values where my diagonal clips the other
+			bool cInfinite = other.lContact.lInf;
+			double c = other.lContact.start;
+
+			bool eInfinite = other.lContact.rInf;
+			double e = other.lContact.end;
+
+			bool aInfinite = other.rContact.lInf;
+			double a = other.rContact.delay + other.rContact.start;
+
+			bool bInfinite = other.rContact.rInf;
+			double b = other.rContact.delay + other.rContact.end;
+
+			bool dInfinite = other.rContact.lInf;
+			double d = other.rContact.start;
+
+			if (other.justContact)
+				return std::list<double>();
+
+			double delay = 0;
+
+			if (justContact)
+			{
+				delay = lContact.delay;
+				if (other.rContact.delay == lContact.delay)
+					return std::list<double>();
+			}
+			else
+			{
+				delay = rContact.delay;
+				if (other.rContact.delay == rContact.delay)
+					return std::list<double>();
+			}
+
+			// x = a line
+			if (!aInfinite)
+			{
+				// check if a-delay is in our interval
+				if (Contains(a,a-delay) && other.Contains(a,a-delay))
+				{
+					clips.push_back(a-delay);
+				}
+			}
+
+			// x = b line
+			if (!bInfinite)
+			{
+				if (Contains(b,b-delay) && other.Contains(b,b-delay))
+					clips.push_back(b-delay);
+			}
+
+			// y = c line
+			if (!cInfinite)
+			{
+				if (Contains(c+delay,c) && other.Contains(c+delay,c))
+					clips.push_back(c);
+			}
+
+			// y = e line
+			if (!eInfinite)
+			{
+				if (Contains(e+delay,e) && other.Contains(e+delay,e))
+					clips.push_back(e);
+			}
+
+			return clips;
+		}
 	public:
+
+		friend bool operator<=(const CGRSemiring& lhs, const CGRSemiring& rhs);
+
 		CSC_Contact()
 		{
 			justContact = false;
@@ -569,8 +786,253 @@ namespace Semiring
 
 		inline friend bool operator<=(const CGRSemiring& lhs, const CGRSemiring& rhs)
 		{
-			// TODO
-			return false;
+			// Step 1: Make sorted list of special y values (y values of corners of shapes in lhs + rhs)
+			std::set<double> corners;
+			bool mI = false;
+			bool pI = false;
+
+			for (auto c : lhs.contacts)
+			{
+				if (c.lContact.lInf)
+					mI = true;
+				else
+					corners.insert(c.lContact.start);
+
+				if (c.lContact.rInf)
+					pI = true;
+				else
+					corners.insert(c.lContact.end);
+
+				if (c.rContact.lInf)
+				{
+					mI = true;
+				}
+				else
+					corners.insert(c.rContact.start);
+			}
+
+			for (auto c : rhs.contacts)
+			{
+				if (c.lContact.lInf)
+					mI = true;
+				else
+					corners.insert(c.lContact.start);
+
+				if (c.lContact.rInf)
+					pI = true;
+				else
+					corners.insert(c.lContact.end);
+
+				if (c.rContact.lInf)
+				{
+					mI = true;
+				}
+				else
+					corners.insert(c.rContact.start);
+
+				for (auto c2 : lhs.contacts)
+				{
+					auto clips = c2.clippedIntersections(c);
+					for (auto clip : clips)
+					{
+						corners.insert(clip);
+					}
+				}
+			}
+
+			// std::cout << "Corners" << std::endl;
+			// for (auto c : corners)
+			// {
+			// 	std::cout << c << std::endl;
+			// }
+			// std::cout << "n" << std::endl;
+
+			// Step 2: Make list of midpoints of the above values
+			std::set<double> midPoints;
+
+			if (mI && (corners.size() != 0))
+			{
+				midPoints.insert((*corners.begin()) - 1.0);
+			}
+			else if (mI && pI)
+			{
+				midPoints.insert(0);
+			}
+			
+			if (corners.size() != 0)
+			{
+				double pVal = (*corners.begin());
+				auto it = corners.begin();
+				it++;
+				while (it != corners.end())
+				{
+					midPoints.insert(((*it) + pVal)/2.0);
+					pVal = *it;
+					it++;
+				}
+
+				if (pI)
+				{
+					midPoints.insert(pVal + 1.0);
+				}
+			}
+
+			// std::cout << "MP" << std::endl;
+			for (auto m : midPoints)
+			{
+				int leftMIBracket = 0;
+				int leftPIBracket = 0;
+				std::map<double, int> leftbrackets;
+				// Step 3: For each midpoint draw a line and segment the line at the edges of shapes in lhs + rhs
+				for (auto c : lhs.contacts)
+				{
+					Interval w = c.Width(m);
+					if (w.empty)
+						continue;
+					// std::cout << w << std::endl;
+					if (w.startInf < 0)
+					{
+						leftMIBracket++;
+					}
+					else if (w.startInf > 0)
+					{
+						leftPIBracket++;
+					}
+					else
+					{
+						if (leftbrackets.count(w.start) != 0)
+							leftbrackets[w.start]++;
+						else
+							leftbrackets[w.start] = 1;
+					}
+
+					if (w.endInf < 0)
+					{
+						leftMIBracket--;
+					}
+					else if (w.endInf > 0)
+					{
+						leftPIBracket--;
+					}
+					else
+					{
+						if (leftbrackets.count(w.end) != 0)
+							leftbrackets[w.end]--;
+						else
+							leftbrackets[w.end] = -1;
+					}
+				}
+
+				int rightMIBracket = 0;
+				int rightPIBracket = 0;
+				std::map<double, int> rightbrackets;
+				for (auto c : rhs.contacts)
+				{
+					Interval w = c.Width(m);
+					if (w.empty)
+						continue;
+					// std::cout << w << std::endl;
+					if (w.startInf < 0)
+					{
+						rightMIBracket++;
+					}
+					else if (w.startInf > 0)
+					{
+						rightPIBracket++;
+					}
+					else
+					{
+						if (rightbrackets.count(w.start) != 0)
+							rightbrackets[w.start]++;
+						else
+							rightbrackets[w.start] = 1;
+					}
+
+					if (w.endInf < 0)
+					{
+						rightMIBracket--;
+					}
+					else if (w.endInf > 0)
+					{
+						rightPIBracket--;
+					}
+					else
+					{
+						if (rightbrackets.count(w.end) != 0)
+							rightbrackets[w.end]--;
+						else
+							rightbrackets[w.end] = -1;
+					}
+				}
+
+				// Step 4: For each segment determine if it is in rhs and not in lhs, if so return false
+				int lDepth = leftMIBracket;
+				int rDepth = rightMIBracket;
+				if ((rDepth > 0) && (lDepth <= 0))
+				{
+					return false;
+				}
+
+				auto lIt = leftbrackets.begin();
+				auto rIt = rightbrackets.begin();
+				while ((lIt != leftbrackets.end()) || (rIt != rightbrackets.end()))
+				{
+					if ((lIt != leftbrackets.end()) && (rIt != rightbrackets.end()))
+					{
+						if (lIt->first < rIt->first)
+						{
+							lDepth += lIt->second;
+							// std::cout << lIt->first << " " << lDepth << " " << rDepth << std::endl;
+							lIt++;
+						}
+						else if (rIt->first < lIt->first)
+						{
+							rDepth += rIt->second;
+							// std::cout << rIt->first << " " << lDepth << " " << rDepth << std::endl;
+							rIt ++;
+						}
+						else
+						{
+							lDepth += lIt->second;
+							rDepth += rIt->second;
+							
+							// std::cout << lIt->first << " " << lDepth << " " << rDepth << std::endl;
+							lIt++;
+							rIt ++;
+						}
+					}
+					else if (lIt != leftbrackets.end())
+					{
+						lDepth += lIt->second;
+						// std::cout << lIt->first << " " << lDepth << " " << rDepth << std::endl;
+						lIt++;
+					}
+					else
+					{
+						rDepth += rIt->second;
+						// std::cout << rIt->first << " " << lDepth << " " << rDepth << std::endl;
+						rIt ++;
+					}
+
+					if ((rDepth > 0) && (lDepth <= 0))
+					{
+						return false;
+					}
+				}
+
+				lDepth += leftPIBracket;
+				rDepth += rightPIBracket;
+				if ((rDepth > 0) && (lDepth <= 0))
+				{
+					return false;
+				}
+			}
+			// std::cout << "non" << std::endl;
+
+			
+
+			// Step 5: Else return true
+			return true;
 		}
 
 		inline friend bool operator>=(const CGRSemiring& lhs, const CGRSemiring& rhs)
