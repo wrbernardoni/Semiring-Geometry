@@ -63,6 +63,32 @@ int main()
 	cout << "Zero: " << CGRSemiring::Zero() << endl;
 	cout << "One: " << CGRSemiring::One() << endl;
 	cout << "Storage: " << CGRSemiring::Storage() << endl;
+	cout << "Storage + One: " << (CGRSemiring::Storage() + CGRSemiring::One()) << endl;
+	cout << "Storage * One: " << (CGRSemiring::Storage() * CGRSemiring::One()) << endl;
+	cout << "One + Storage: " << (CGRSemiring::One() + CGRSemiring::Storage()) << endl;
+	cout << "One * Storage: " << (CGRSemiring::One() * CGRSemiring::Storage()) << endl;
+
+	cout << "Example 2.39 matrix: " << endl;
+	Matrix<CGRSemiring,4,4> ex;
+	for (int i = 0; i < 4; i++)
+	{
+		ex(i,i) = CGRSemiring::Storage();
+	}
+
+	ex(0,1) = CGRSemiring(Contact(0,1,10));
+	ex(0,2) = CGRSemiring(Contact(1,3,0));
+	ex(1,3) = CGRSemiring(Contact(10,11,5));
+	ex(2,3) = CGRSemiring(Contact(5,6,0));
+
+	cout << ex << endl;
+
+	auto run = ex;
+
+	for (int i = 1; i < 10; i++)
+	{
+		cout << "[" << i << "]th power of ex from A->D: " << endl << run(0,3) << endl << endl;
+		run = run * ex;
+	}
 
 	return 0;
 }

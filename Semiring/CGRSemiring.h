@@ -163,8 +163,14 @@ namespace Semiring
 			return *this;
 		}
 
+		inline bool isEmpty()
+		{
+			return lContact.empty;
+		}
+
 		CSC_Contact(Contact l, Contact r)
 		{
+			// std::cout << "Computing canonical form of " << l << "S" << r << std::endl;
 			if (l.empty || r.empty)
 			{
 				lContact = Contact(true);
@@ -198,7 +204,8 @@ namespace Semiring
 			else if (r.lInf)
 				d = l.start;
 
-			d = std::min(d,l.end);
+			if (!l.rInf)
+				d = std::min(d,l.end);
 
 			double e = std::min(l.end, r.end - l.delay);
 			if (l.rInf)
@@ -221,6 +228,8 @@ namespace Semiring
 				justContact = true;
 				return;
 			}
+
+			// std::cout << "a" << a << " b" << b << " c" << c << " d" << d << " e" << e << std::endl;
 
 			lContact = Contact(c,e,0,cMI,eI);
 			rContact = Contact(d,d + (b-a), (aMI ? 0 : a - d), aMI, bI);
@@ -256,6 +265,9 @@ namespace Semiring
 		// If xInf > 0 then x is seen as positive infinity, if xInf < 0 then x is seen as -inf
 		bool Contains(double x, double y, int xInf = 0, int yInf = 0) const
 		{
+			if (lContact.empty)
+				return false;
+
 			if (justContact)
 			{
 				if (yInf < 0)
@@ -426,8 +438,12 @@ namespace Semiring
 			return !(lhs == rhs);
 		}
 
+		// This is the subset relationship
 		inline friend bool operator<=(const CSC_Contact& lhs, const CSC_Contact& rhs)
 		{
+			if (lhs.lContact.empty)
+				return true;
+
 			if (lhs.justContact)
 			{
 				if (lhs.lContact.lInf)
@@ -574,19 +590,59 @@ namespace Semiring
 
 		const CGRSemiring operator+ (const CGRSemiring& rhs) const
 		{
-			// TODO
-			return CGRSemiring();
+			CGRSemiring s;
+			for (auto c : contacts)
+			{
+				s.Add(c);
+			}
+
+			for (auto c : rhs.contacts)
+			{
+				s.Add(c);
+			}
+
+			return s;
 		}
 
 		const CGRSemiring operator* (const CGRSemiring& rhs) const
 		{
-			// TODO
-			return CGRSemiring();
+			CGRSemiring s;
+			for (auto x : contacts)
+			{
+				for (auto y : rhs.contacts)
+				{
+					auto m = x * y;
+					if (m != CSC_Contact(Contact(false)));
+						s.Add(x * y);
+				}
+			}
+
+			return s;
 		}
 
 		CGRSemiring& Add(CSC_Contact c)
 		{
-			// TODO
+			CSC_Contact dom = c;
+			std::list<CSC_Contact> newContacts;
+			auto itr = contacts.begin();
+
+			while (itr != contacts.end())
+			{
+				if ((*itr) >= dom)
+				{
+					dom = (*itr);
+					return *this;
+				}
+				else if (!(dom >= (*itr)))
+				{
+					newContacts.push_back(*itr);
+				}
+
+				itr++;
+			}
+
+			newContacts.push_back(dom);
+			contacts = newContacts;
 
 			return *this;
 		}
