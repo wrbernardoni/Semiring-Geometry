@@ -190,6 +190,26 @@ namespace Semiring
 
 		Interval Width(double y, int yInf = 0)
 		{
+			if (lContact.empty)
+			{
+				return Interval();
+			}
+
+			if (justContact)
+			{
+				if (!(lContact.lInf) && (y < lContact.start))
+				{
+					return Interval();
+				}
+
+				if (!(lContact.rInf) && (y > lContact.end))
+				{
+					return Interval();
+				}
+
+				return Interval(y + lContact.delay, y + lContact.delay);
+			}
+
 			bool cInfinite = lContact.lInf;
 			double c = lContact.start;
 
@@ -353,6 +373,7 @@ namespace Semiring
 	public:
 
 		friend bool operator<=(const CGRSemiring& lhs, const CGRSemiring& rhs);
+		friend class CGRSemiring;
 
 		CSC_Contact()
 		{
@@ -870,6 +891,9 @@ namespace Semiring
 
 			for (auto c : lhs.contacts)
 			{
+				if (c.isEmpty())
+					continue;
+
 				if (c.lContact.lInf)
 					mI = true;
 				else
@@ -879,6 +903,11 @@ namespace Semiring
 					pI = true;
 				else
 					corners.insert(c.lContact.end);
+
+				if (c.justContact)
+				{
+					continue;
+				}
 
 				if (c.rContact.lInf)
 				{
@@ -900,13 +929,18 @@ namespace Semiring
 				else
 					corners.insert(c.lContact.end);
 
-				if (c.rContact.lInf)
+				if (!c.justContact)
 				{
-					mI = true;
-				}
-				else
-					corners.insert(c.rContact.start);
+					if (c.rContact.lInf)
+					{
+						mI = true;
+					}
+					else
+						corners.insert(c.rContact.start);
 
+				}
+
+				
 				for (auto c2 : lhs.contacts)
 				{
 					auto clips = c2.clippedIntersections(c);
@@ -957,6 +991,7 @@ namespace Semiring
 			// std::cout << "MP" << std::endl;
 			for (auto m : midPoints)
 			{
+				// std::cout << m << std::endl;
 				int leftMIBracket = 0;
 				int leftPIBracket = 0;
 				std::map<double, int> leftbrackets;
@@ -1064,6 +1099,10 @@ namespace Semiring
 						}
 						else if (rIt->first < lIt->first)
 						{
+							if ((rIt->second == 0) && lDepth <= 0)
+							{
+								return false;
+							}
 							rDepth += rIt->second;
 							// std::cout << rIt->first << " " << lDepth << " " << rDepth << std::endl;
 							rIt ++;
@@ -1086,6 +1125,10 @@ namespace Semiring
 					}
 					else
 					{
+						if ((rIt->second == 0) && lDepth <= 0)
+						{
+							return false;
+						}
 						rDepth += rIt->second;
 						// std::cout << rIt->first << " " << lDepth << " " << rDepth << std::endl;
 						rIt ++;
