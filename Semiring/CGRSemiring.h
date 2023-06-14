@@ -401,7 +401,7 @@ namespace Semiring
 			return *this;
 		}
 
-		inline bool isEmpty()
+		inline bool isEmpty() const
 		{
 			return lContact.empty;
 		}
@@ -479,6 +479,11 @@ namespace Semiring
 
 		const CSC_Contact operator* (const CSC_Contact& rhs) const
 		{
+			if (isEmpty() || rhs.isEmpty())
+			{
+				return CSC_Contact(Contact(true));
+			}
+
 			if (justContact && rhs.justContact)
 			{
 				return CSC_Contact(lContact * rhs.lContact);
@@ -494,6 +499,10 @@ namespace Semiring
 			else
 			{
 				Contact mid = rContact * rhs.lContact;
+				if (mid.empty)
+				{
+					return CSC_Contact(Contact(true));
+				}
 				Contact lConj(0, mid.end, 0, true, mid.rInf);
 				Contact rConj(mid.start, 0, mid.delay, mid.lInf, true);
 				return CSC_Contact(lContact * lConj, rConj * rhs.rContact);
@@ -629,12 +638,16 @@ namespace Semiring
 					// Sloping region
 					// check if x is between y + delay and b
 					if (x < (y + rContact.delay))
+					{
 						return false;
+					}
 
 					if (!rContact.rInf)
 					{
 						if (x > (rContact.end + rContact.delay))
+						{
 							return false;
+						}
 					}
 				}
 				else
@@ -659,7 +672,11 @@ namespace Semiring
 
 		friend std::ostream& operator<<(std::ostream& os, const CSC_Contact& ts)
 		{
-			if (!ts.justContact)
+			if (ts.isEmpty())
+			{
+				os << "()";
+			}
+			else if (!ts.justContact)
 				os << ts.lContact << "S" << ts.rContact;
 			else
 				os << ts.lContact;
@@ -692,7 +709,9 @@ namespace Semiring
 				else
 				{
 					if (!rhs.Contains(lhs.lContact.start + lhs.lContact.delay, lhs.lContact.start, 0, 0))
+					{
 						return false;
+					}
 				}
 
 				if (lhs.lContact.rInf)
@@ -703,7 +722,9 @@ namespace Semiring
 				else
 				{
 					if (!rhs.Contains(lhs.lContact.end + lhs.lContact.delay, lhs.lContact.end, 0, 0))
+					{
 						return false;
+					}
 				}
 
 				if (lhs.lContact.lInf && lhs.lContact.rInf)
@@ -864,12 +885,12 @@ namespace Semiring
 
 		CGRSemiring(CSC_Contact c)
 		{
-			Add(c);
+			contacts.push_back(c);
 		}
 
 		CGRSemiring(Contact c)
 		{
-			Add(CSC_Contact(c));
+			contacts.push_back(CSC_Contact(c));
 		}
 
 		inline friend bool operator==(const CGRSemiring& lhs, const CGRSemiring& rhs) 
@@ -1194,8 +1215,10 @@ namespace Semiring
 				for (auto y : rhs.contacts)
 				{
 					auto m = x * y;
-					if (m != CSC_Contact(Contact(false)));
+					if (m != CSC_Contact(Contact(true)))
+					{
 						s.Add(x * y);
+					}
 				}
 			}
 
@@ -1209,16 +1232,20 @@ namespace Semiring
 			auto itr = contacts.begin();
 
 			while (itr != contacts.end())
-			{
-				if ((*itr) >= dom)
+			{				
+				if (CGRSemiring(*itr) <= CGRSemiring(dom))
 				{
 					dom = (*itr);
 					return *this;
 				}
-				else if (!(dom >= (*itr)))
+				else if (CGRSemiring(*itr) >= CGRSemiring(dom))
+				{
+				}
+				else
 				{
 					newContacts.push_back(*itr);
 				}
+				
 
 				itr++;
 			}
@@ -1290,7 +1317,7 @@ struct std::hash<Semiring::CGRSemiring>
 	{
 
 
-		return std::hash<double>()(k.MinDelay()) ^ std::hash<double>()(k.h1()) ^ std::hash<double>()(k.h2());
+		return std::hash<string>()(std::to_string(k.MinDelay())) ^ std::hash<string>()(std::to_string(k.h1())) ^ std::hash<string>()(std::to_string(k.h2()));
 	}
 };
 
