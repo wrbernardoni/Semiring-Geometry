@@ -77,7 +77,7 @@ namespace Semiring
 			for (int d = 0; d < N; d++)
 			{
 				auto opSet = pathMatrix(t,d).getSet();
-				std::unordered_set<Semiring::FreeMonoid<N * N>, StreamHash<Semiring::FreeMonoid<N * N>>> aPaths;
+				std::unordered_set<Semiring::FreeMonoid<N * N>> aPaths;
 				for (auto itr = opSet.begin(); itr != opSet.end(); itr++)
 				{
 					aPaths = Semiring::Union(aPaths, itr->getSet());
@@ -110,8 +110,14 @@ namespace Semiring
 			{
 				for (int d = 0; d < N; d++)
 				{
-					// if ((cMatrix(t,d) == pCMatrix(t,d)) && (i > 1))
-					// 	continue;
+					// If we want *all* *all* minimal paths we need to delete this
+					if ((cMatrix(t,d) == pCMatrix(t,d)) && (i > 1))
+					{
+						#ifdef VERBOSE
+							std::cout << "\t\t Entry ("<< t << "," << d << ") unchanged" << std::endl;
+						#endif
+						continue;
+					}
 					
 					if (cMatrix(t,d) == CostType::Zero())
 					{
@@ -125,14 +131,14 @@ namespace Semiring
 					#ifdef VERBOSE
 						std::cout << "\t\t Reducing entry ("<< t << "," << d << ")" << std::endl;
 					#endif
-					std::unordered_set<Semiring::FreeIdempotentSemiring<Semiring::FreeMonoid<N * N>>, StreamHash<Semiring::FreeIdempotentSemiring<Semiring::FreeMonoid<N * N>>>> availPaths;
-					std::unordered_map<Semiring::FreeMonoid<N * N>, int, StreamHash<Semiring::FreeIdempotentSemiring<Semiring::FreeMonoid<N * N>>>> pMap;
+					std::unordered_set<Semiring::FreeIdempotentSemiring<Semiring::FreeMonoid<N * N>>> availPaths;
+					std::unordered_map<Semiring::FreeMonoid<N * N>, int> pMap;
 
-					std::unordered_set<Semiring::FreeMonoid<N * N>, StreamHash<Semiring::FreeMonoid<N * N>>> aPaths = pBundle(t,d).getSet();;
+					std::unordered_set<Semiring::FreeMonoid<N * N>> aPaths = pBundle(t,d).getSet();;
 
 					std::vector<Semiring::FreeMonoid<N * N>> bases;
 					std::vector<CostType> baseCost;
-					std::unordered_set<Semiring::FreeMonoid<0>, Semiring::StreamHash<Semiring::FreeMonoid<0>>> bses;
+					std::unordered_set<Semiring::FreeMonoid<0>> bses;
 					for (auto itr = aPaths.begin(); itr != aPaths.end(); itr++)
 					{
 
@@ -155,7 +161,7 @@ namespace Semiring
 							pMap[(*itr)] = bases.size();
 						}
 					}
-					std::vector<std::unordered_set<Semiring::FreeMonoid<0>, Semiring::StreamHash<Semiring::FreeMonoid<0>>>> seeds;
+					std::vector<std::unordered_set<Semiring::FreeMonoid<0>>> seeds;
 
 					// if ((cMatrix(t,d) == pCMatrix(t,d)) && (i > 1))
 					// {
@@ -251,7 +257,7 @@ namespace Semiring
 
 						for (auto mSet = mSS.begin(); mSet != mSS.end(); mSet++)
 						{
-							std::unordered_set<Semiring::FreeMonoid<0>, Semiring::StreamHash<Semiring::FreeMonoid<0>>> pSet;
+							std::unordered_set<Semiring::FreeMonoid<0>> pSet;
 							bool good = true;
 							auto pathBundle = (*mSet).getSet();
 							for (auto p = pathBundle.begin(); p != pathBundle.end(); p++)
@@ -288,7 +294,7 @@ namespace Semiring
 						std::cout << "\t\t\tComputing minimal bundles out of " << bases.size() << " bases" << std::endl;
 					#endif
 
-					auto minimalSubsets = MinimalSubsets(bses, [&baseCost, &optCost](std::unordered_set<Semiring::FreeMonoid<0>, StreamHash<Semiring::FreeMonoid<0>>> bundle){
+					auto minimalSubsets = MinimalSubsets(bses, [&baseCost, &optCost](std::unordered_set<Semiring::FreeMonoid<0>> bundle){
 						CostType bagCost = CostType::Zero();
 						for (auto it = bundle.begin(); it != bundle.end(); it++)
 						{
@@ -319,7 +325,7 @@ namespace Semiring
 
 					pathMatrix(t,d) = Semiring::FreeIdempotentSemiring<Semiring::FreeIdempotentSemiring<Semiring::FreeMonoid<N * N>>>(availPaths);
 
-					std::unordered_set<Semiring::FreeMonoid<N * N>, StreamHash<Semiring::FreeMonoid<N * N>>> bund;
+					std::unordered_set<Semiring::FreeMonoid<N * N>> bund;
 					for (auto itr = availPaths.begin(); itr != availPaths.end(); itr++)
 					{
 						bund = Semiring::Union(bund, itr->getSet());
