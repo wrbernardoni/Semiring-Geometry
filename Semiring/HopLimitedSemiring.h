@@ -13,6 +13,11 @@ namespace Semiring
 		unsigned int x;
 
 	public:
+		inline unsigned int get() const
+		{
+			return x;
+		}
+
 		HopLimitedSemiring<L>()
 		{
 			x = 0;
@@ -97,5 +102,17 @@ namespace Semiring
 	};
 
 }
+
+#include <SetUtilities.h>
+#include <functional>
+
+template<unsigned int L>
+struct std::hash<Semiring::HopLimitedSemiring<L>>
+{
+	std::size_t operator()(const Semiring::HopLimitedSemiring<L>& k) const
+	{
+		return std::hash<unsigned int>()(k.get());
+	}
+};
 
 #endif 

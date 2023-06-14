@@ -5,6 +5,7 @@
 #include <functional>
 #include <vector>
 #include <string>
+#include <SetUtilities.h>
 
 namespace Semiring
 {
@@ -135,7 +136,25 @@ namespace Semiring
 		}
 	};
 
+	
 }
+
+#include <SetUtilities.h>
+#include <functional>
+
+template<unsigned int N>
+struct std::hash<Semiring::FreeMonoid<N>>
+{
+	std::size_t operator()(const Semiring::FreeMonoid<N>& k) const
+	{
+		std::size_t minH = 0;
+		for (int i = 0; i < k.size(); i++)
+		{
+			minH = minH ^ std::hash<unsigned int>()(k.at(i));
+		}
+		return minH;
+	}
+};
 
 #endif 
 

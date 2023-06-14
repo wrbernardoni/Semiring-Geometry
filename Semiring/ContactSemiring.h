@@ -233,4 +233,25 @@ namespace Semiring
 
 }
 
+#include <SetUtilities.h>
+#include <functional>
+
+template<typename T, unsigned int L>
+struct std::hash<Semiring::ContactSemiring<T,L>>
+{
+	std::size_t operator()(const Semiring::ContactSemiring<T,L>& k) const
+	{
+		std::size_t minH = 0;
+		for (int i = 0; i <= L; i++)
+		{
+			for (int j = 0; j <= (L-i); j++)
+			{
+				minH = minH ^ std::hash<T>()(k.at(i,j));
+			}
+		}
+
+		return minH;
+	}
+};
+
 #endif 

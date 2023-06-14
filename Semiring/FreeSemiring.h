@@ -10,20 +10,19 @@
 
 namespace Semiring
 {
-
 	// Constructs the free idempotent semiring on a monoid defined by T
 	// Just need T to be a unital monoid, so it needs T.One(), T.operator==, T.operator<<, and T.operator* defined
 	template<typename T> class FreeIdempotentSemiring
 	{
 	protected:
-		std::unordered_set<T, StreamHash<T>> x;
+		std::unordered_set<T> x;
 
 	public:
 		FreeIdempotentSemiring<T>()
 		{
 		}
 
-		FreeIdempotentSemiring<T>(std::unordered_set<T, StreamHash<T>> n)
+		FreeIdempotentSemiring<T>(std::unordered_set<T> n)
 		{
 			x = n;
 		}
@@ -80,14 +79,14 @@ namespace Semiring
 
 		const FreeIdempotentSemiring<T> operator+ (const FreeIdempotentSemiring<T>& rhs) const
 		{
-			std::unordered_set<T, StreamHash<T>> result = x;
+			std::unordered_set<T> result = x;
   			result.insert(rhs.x.begin(), rhs.x.end());
 			return FreeIdempotentSemiring<T>(result);
 		}
 
 		const FreeIdempotentSemiring<T> operator* (const FreeIdempotentSemiring<T>& rhs) const
 		{
-			std::unordered_set<T, StreamHash<T>> result;
+			std::unordered_set<T> result;
 			for (auto itr = x.begin(); itr != x.end(); itr++)
 			{
 				for (auto itr2 = rhs.x.begin(); itr2 != rhs.x.end(); itr2++)
@@ -129,17 +128,39 @@ namespace Semiring
 
 		static FreeIdempotentSemiring<T> One()
 		{
-			std::unordered_set<T, StreamHash<T>> result;
+			std::unordered_set<T> result;
 			result.insert(T::One());
 			return FreeIdempotentSemiring<T>(result);
 		}
 
-		std::unordered_set<T, StreamHash<T>> getSet() const
+		std::unordered_set<T> getSet() const
 		{
 			return x;
 		}
 	};
-
 }
+
+#include <SetUtilities.h>
+#include <functional>
+
+template<typename T>
+struct std::hash<Semiring::FreeIdempotentSemiring<T>>
+{
+	std::size_t operator()(const Semiring::FreeIdempotentSemiring<T>& k) const
+	{
+		std::size_t minH = 0;
+		bool first = true;
+		for (auto x : k.getSet())
+		{
+			if (((std::hash<T>()(x) + 1) <= minH) || first)
+			{
+				first = false;
+				minH = std::hash<T>()(x) + 1;
+			}
+		}
+
+		return minH;
+	}
+};
 
 #endif 

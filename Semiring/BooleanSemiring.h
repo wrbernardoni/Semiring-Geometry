@@ -13,6 +13,8 @@ namespace Semiring
 		bool x;
 
 	public:
+		inline bool get() const {return x;}
+
 		BooleanSemiring()
 		{
 			x = false;
@@ -89,5 +91,17 @@ namespace Semiring
 	};
 
 }
+
+#include <SetUtilities.h>
+#include <functional>
+
+template<>
+struct std::hash<Semiring::BooleanSemiring>
+{
+	std::size_t operator()(const Semiring::BooleanSemiring& k) const
+	{
+		return k.get();
+	}
+};
 
 #endif 

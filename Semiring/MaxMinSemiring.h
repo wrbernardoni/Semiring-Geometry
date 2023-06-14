@@ -13,6 +13,8 @@ namespace Semiring
 		double x;
 
 	public:
+		inline double get() const {return x; }
+
 		MaxMinSemiring()
 		{
 			x = 0;
@@ -92,5 +94,17 @@ namespace Semiring
 	};
 
 }
+
+#include <SetUtilities.h>
+#include <functional>
+
+template<>
+struct std::hash<Semiring::MaxMinSemiring>
+{
+	std::size_t operator()(const Semiring::MaxMinSemiring& k) const
+	{
+		return std::hash<double>()(k.get());
+	}
+};
 
 #endif 

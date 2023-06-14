@@ -13,6 +13,7 @@ namespace Semiring
 		double x;
 
 	public:
+		inline double get() const { return x; }
 		TropicalSemiring()
 		{
 			x = std::numeric_limits<double>::infinity();
@@ -89,5 +90,17 @@ namespace Semiring
 	};
 
 }
+
+#include <SetUtilities.h>
+#include <functional>
+
+template<>
+struct std::hash<Semiring::TropicalSemiring>
+{
+	std::size_t operator()(const Semiring::TropicalSemiring& k) const
+	{
+		return std::hash<double>()(k.get());
+	}
+};
 
 #endif 

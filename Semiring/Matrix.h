@@ -36,6 +36,11 @@ namespace Semiring
 			return data[a][b];
 		}
 
+		T at(int a, int b) const
+		{
+			return data[a][b];
+		}
+
 		inline friend bool operator==(const Matrix<T,R,C>& lhs, const Matrix<T,R,C>& rhs) 
 		{
 			for (int i = 0; i < R; i++)
@@ -186,6 +191,26 @@ namespace Semiring
 	};
 
 }
+
+#include <SetUtilities.h>
+#include <functional>
+
+template<typename T, unsigned int R, unsigned int C>
+struct std::hash<Semiring::Matrix<T,R,C>>
+{
+	std::size_t operator()(const Semiring::Matrix<T,R,C>& k) const
+	{
+		std::size_t minH = 0;
+		for (int i = 0; i < R; i++)
+		{
+			for (int j = 0; j < C; j++)
+			{
+				minH = minH ^ std::hash<T>()(k.at(i,j));
+			}
+		}
+		return minH;
+	}
+};
 
 
 #endif

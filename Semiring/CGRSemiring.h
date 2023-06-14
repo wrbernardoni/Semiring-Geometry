@@ -760,6 +760,83 @@ namespace Semiring
 		std::list<CSC_Contact> contacts;
 
 	public:
+		// -1 if no contacts
+		double MinDelay() const
+		{
+			double mD = -1.0;
+			bool first = true;
+
+
+			for (auto c : contacts)
+			{
+				if (c.isEmpty())
+					continue;
+				if ((first) || (c.rContact.delay < mD))
+				{
+					first = false;
+					mD = c.rContact.delay;
+				}
+			}
+
+			return mD;
+		}
+
+		// Returns minimum available time / -1272141235.45 if negative infinity
+		// Used for hashing only
+		double h1() const
+		{
+			double mD = -1.0;
+			bool first = true;
+
+
+			for (auto c : contacts)
+			{
+				if (c.isEmpty())
+					continue;
+
+				bool aInfinite = c.rContact.lInf;
+				double a = c.rContact.delay + c.rContact.start;
+				if ((first) || (a < mD) || (aInfinite))
+				{
+					if (aInfinite)
+						return -1272141235.45;
+
+					first = false;
+					mD = a;
+				}
+			}
+
+			return mD;
+		}
+
+		// Returns minimum available time / 7123891247891212.45 if infinity
+		// Used for hashing only
+		double h2() const
+		{
+			double mD = -1.0;
+			bool first = true;
+
+
+			for (auto c : contacts)
+			{
+				if (c.isEmpty())
+					continue;
+
+				bool bInfinite = c.rContact.rInf;
+				double b = c.rContact.delay + c.rContact.end;
+				if ((first) || (b > mD) || (bInfinite))
+				{
+					if (bInfinite)
+						return 7123891247891212.45;
+					
+					first = false;
+					mD = b;
+				}
+			}
+
+			return mD;
+		}
+
 		CGRSemiring()
 		{
 		}
@@ -1159,5 +1236,19 @@ namespace Semiring
 		}
 	};
 }
+
+#include <SetUtilities.h>
+
+// TODO actually make the hash
+template<>
+struct std::hash<Semiring::CGRSemiring>
+{
+	std::size_t operator()(const Semiring::CGRSemiring& k) const
+	{
+
+
+		return std::hash<double>()(k.MinDelay()) ^ std::hash<double>()(k.h1()) ^ std::hash<double>()(k.h2());
+	}
+};
 
 #endif 
