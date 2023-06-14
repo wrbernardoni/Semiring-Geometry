@@ -139,6 +139,10 @@ namespace Semiring
 					std::vector<Semiring::FreeMonoid<N * N>> bases;
 					std::vector<CostType> baseCost;
 					std::unordered_set<Semiring::FreeMonoid<0>> bses;
+
+					auto baseCandidates = bases;
+					auto bCCandidates = baseCost;
+
 					for (auto itr = aPaths.begin(); itr != aPaths.end(); itr++)
 					{
 
@@ -155,10 +159,46 @@ namespace Semiring
 
 						if (pathCost != CostType::Zero())
 						{
-							bases.push_back((*itr));
-							baseCost.push_back(pathCost);
+							baseCandidates.push_back((*itr));
+							bCCandidates.push_back(pathCost);
+							// bases.push_back((*itr));
+							// baseCost.push_back(pathCost);
+							// bses.insert(Semiring::FreeMonoid<0>(bases.size()));
+							// pMap[(*itr)] = bases.size();
+						}
+					}
+
+					// Reduce the base candidates to their minimal elements
+					// In cases of two bases with the same cost, keep the ones with shorter path length
+					for (int i = 0; i < baseCandidates.size(); i++)
+					{
+						bool good = true;
+						for (int j = 0; j < baseCandidates.size(); j++)
+						{
+							if (j == i)
+								continue;
+
+							if ((bCCandidates[i] >= bCCandidates[j]) && (bCCandidates[i] != bCCandidates[j]))
+							{
+								good = false;
+								break;
+							}
+							else if (bCCandidates[i] == bCCandidates[j])
+							{
+								if (baseCandidates[i].size() > baseCandidates[j].size())
+								{
+									good = false;
+									break;
+								}
+							}
+						}
+
+						if (good)
+						{
+							bases.push_back(baseCandidates[i]);
+							baseCost.push_back(bCCandidates[i]);
 							bses.insert(Semiring::FreeMonoid<0>(bases.size()));
-							pMap[(*itr)] = bases.size();
+							pMap[baseCandidates[i]] = bases.size();
 						}
 					}
 					std::vector<std::unordered_set<Semiring::FreeMonoid<0>>> seeds;
