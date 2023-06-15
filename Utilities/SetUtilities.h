@@ -194,7 +194,7 @@ namespace Semiring
 		std::deque<int> lIns;
 		std::deque<std::unordered_set<S>> setQ;
 
-		bool breadth = true;
+		bool breadth = false;
 
 		for (int i = 0; i < ele.size(); i++)
 		{
@@ -224,8 +224,32 @@ namespace Semiring
 					break;
 				}
 			}
+
+			if (!bad)
+			{
+				std::unordered_set<S> testS;
+				for (int i = 0; i < lAdd; i++)
+				{
+					if (topS.count(ele[i]) != 0)
+						testS.insert(ele[i]);
+				}
+
+				for (auto it = notSup.begin(); it != notSup.end(); it++)
+				{
+					if (SubsetEq((*it), topS))
+					{
+						bad = true;
+						break;
+					}
+				}
+			}
+
 			if (bad)
 			{
+				if (cBestSize != -1)
+				{
+					breadth = true;
+				}
 				continue;
 			}
 
@@ -246,7 +270,6 @@ namespace Semiring
 				{
 					cBestSize = topS.size();
 					currentBest = topS;
-					breadth = false;
 
 					if (cBestSize == goalSize)
 					{
