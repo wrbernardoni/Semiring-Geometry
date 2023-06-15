@@ -108,6 +108,7 @@ namespace Semiring
 			#ifdef VERBOSE
 				std::cout << "\tReducing path possibilities to minimal bundles" << std::endl;
 			#endif
+			int longestPath = 0;
 			for (int t = 0; t < N; t++)
 			{
 				for (int d = 0; d < N; d++)
@@ -272,6 +273,10 @@ namespace Semiring
 						{
 							auto p = bases[j->at(0) - 1];
 							p.setLabel(dispL);
+							if (p.size() > longestPath)
+							{
+								longestPath = p.size();
+							}
 							bundle.insert(p);
 						}
 
@@ -301,6 +306,10 @@ namespace Semiring
 				return pathMatrix;
 			}
 			
+			if (longestPath < (i-1))//if (nC == cMatrix)
+			{
+				return pathMatrix;
+			}
 			
 
 			// Take a step
@@ -309,10 +318,6 @@ namespace Semiring
 			#endif
 			auto nC = cMatrix * costStep;
 			// Cut early if paths dont change (faster if we just do costs dont change)
-			if (pPMatrix == pathMatrix)//if (nC == cMatrix)
-			{
-				return pathMatrix;
-			}
 
 			#ifdef VERBOSE
 				std::cout << "\tPath matrix multiplication step" << std::endl;
