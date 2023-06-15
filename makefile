@@ -1,17 +1,17 @@
 CC = g++
-CFLAGS  = -o3 -fopenmp --std=c++20
+CFLAGS  = -o3 --std=c++20
 
-LDFLAGS=-lssl
-LDFLAGS+=-lcrypto
+# LDFLAGS=-lssl
+# LDFLAGS+=-lcrypto
 
 
 ifeq ($(OS),Windows_NT) 
     detected_OS := Windows
-    LDFLAGS+=-lws2_32
-	LDFLAGS+=-lgdi32
-	LDFLAGS+=-ladvapi32
-	LDFLAGS+=-lcrypt32
-    LDFLAGS+=-luser32
+#     LDFLAGS+=-lws2_32
+# 	LDFLAGS+=-lgdi32
+# 	LDFLAGS+=-ladvapi32
+# 	LDFLAGS+=-lcrypt32
+#     LDFLAGS+=-luser32
 else
     detected_OS := $(shell sh -c 'uname 2>/dev/null || echo Unknown')
     CFLAGS += -pthread
