@@ -342,12 +342,12 @@ namespace Semiring
 			if (goalSize > top.size() - 1)
 				goalSize = top.size() - 1;//top.size()/2 + top.size()%2;
 			#ifdef VERBOSE
-				std::cout << "\t\t\t\t(g)" << top.size() << "-> ? #min:" << minimals.size() << "(" << (minimals.size() != 0 ? ((minCount + minimals.size() - 1)/minimals.size())  : 0) << ") #dep:" << dependents.size() << " #queue:" << que.size() << " goalSize:" << goalSize << " oracleCalls:" << oracleCalls;
+				std::cout << "\t\t\t\t(g)" << top.size() << "-> ? #min:" << minimals.size() << "(" << (minimals.size() != 0 ? ((minCount + minimals.size() - 1)/minimals.size())  : 0) << ") #dep:" << dependents.size() << "(" << avgDepsize << ") #queue:" << que.size() << " goalSize:" << goalSize << " oracleCalls:" << oracleCalls;
 				std::cout << "      \r" << std::flush;
 			#endif
 			std::unordered_set<S> subset = GenerateSubset(top, minimals, dependents, goalSize);
 			#ifdef VERBOSE
-				std::cout << "\t\t\t\t(c)" << top.size() << "->" << subset.size() << " #min:" << minimals.size() << "(" << (minimals.size() != 0 ? ((minCount + minimals.size() - 1)/minimals.size())  : 0) << ") #dep:" << dependents.size() <<" #queue:" << que.size() << " goalSize:" << goalSize << " oracleCalls:" << oracleCalls;
+				std::cout << "\t\t\t\t(c)" << top.size() << "->" << subset.size() << " #min:" << minimals.size() << "(" << (minimals.size() != 0 ? ((minCount + minimals.size() - 1)/minimals.size())  : 0) << ") #dep:" << dependents.size() << "(" << avgDepsize <<") #queue:" << que.size() << " goalSize:" << goalSize << " oracleCalls:" << oracleCalls;
 				std::cout << "      \r" << std::flush;
 			#endif
 			if (subset.size() != 0)
