@@ -162,23 +162,23 @@ namespace Semiring
 
 		std::deque<std::unordered_set<S>> q;
 
-		std::vector<std::unordered_set<S>> notSub;
-		for (int i = 0; i < notSubset.size(); i++)
-		{
-			if (SubsetEq(notSubset[i], baseSet))
-			{
-				notSub.push_back(notSubset[i]);
-			}
-		}
-
 		std::vector<std::unordered_set<S>> notSup;
 		for (int i = 0; i < notSuperset.size(); i++)
 		{
-			std::unordered_set<S> s = Intersect(notSuperset[i], baseSet);
-			bool add = true;
-			for (int j = 0; j < notSup.size(); j++)
+			if (SubsetEq(notSuperset[i], baseSet))
 			{
-				if (SetEq(notSup[j], s))
+				notSup.push_back(notSuperset[i]);
+			}
+		}
+
+		std::vector<std::unordered_set<S>> notSub;
+		for (int i = 0; i < notSubset.size(); i++)
+		{
+			std::unordered_set<S> s = Intersect(notSubset[i], baseSet);
+			bool add = true;
+			for (int j = 0; j < notSub.size(); j++)
+			{
+				if (SetEq(notSub[j], s))
 				{
 					add = false;
 					break;
@@ -187,7 +187,7 @@ namespace Semiring
 
 			if (add)
 			{
-				notSup.push_back(s);
+				notSub.push_back(s);
 			}
 		}
 
@@ -336,8 +336,11 @@ namespace Semiring
 				avgDepsize = (depC + depN - 1)/(depN);
 
 			int goalSize = (top.size() + avgDepsize)/2;
+			if (minimals.size() > 10)
+				goalSize = (top.size() + std::max((int)((minCount + minimals.size() - 1)/minimals.size()), avgDepsize))/2;
+
 			if (goalSize > top.size() - 1)
-				goalSize = top.size()/2 + top.size()%2;
+				goalSize = top.size() - 1;//top.size()/2 + top.size()%2;
 			#ifdef VERBOSE
 				std::cout << "\t\t\t\t(g)" << top.size() << "-> ? #min:" << minimals.size() << "(" << (minimals.size() != 0 ? ((minCount + minimals.size() - 1)/minimals.size())  : 0) << ") #dep:" << dependents.size() << " #queue:" << que.size() << " goalSize:" << goalSize << " oracleCalls:" << oracleCalls;
 				std::cout << "      \r" << std::flush;
@@ -381,6 +384,9 @@ namespace Semiring
 					minCount += top.size();
 				#endif
 				minimals.push_back(top);
+
+				// Just finds one minimal
+				// break;
 			}
 		}
 

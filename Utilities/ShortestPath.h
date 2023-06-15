@@ -100,6 +100,8 @@ namespace Semiring
 
 		Semiring::Matrix<CostType,N,N> pCMatrix;
 
+		auto pPMatrix = pathMatrix;
+
 		for (int i = 1; i <= max_steps; i++)
 		{
 			// Reduce paths
@@ -111,13 +113,13 @@ namespace Semiring
 				for (int d = 0; d < N; d++)
 				{
 					// If we want *all* *all* minimal paths we need to delete this
-					if ((cMatrix(t,d) == pCMatrix(t,d)) && (i > 1))
-					{
-						#ifdef VERBOSE
-							std::cout << "\t\t Entry ("<< t << "," << d << ") unchanged" << std::endl;
-						#endif
-						continue;
-					}
+					// if ((cMatrix(t,d) == pCMatrix(t,d)) && (i > 1))
+					// {
+					// 	#ifdef VERBOSE
+					// 		std::cout << "\t\t Entry ("<< t << "," << d << ") unchanged" << std::endl;
+					// 	#endif
+					// 	continue;
+					// }
 					
 					if (cMatrix(t,d) == CostType::Zero())
 					{
@@ -178,7 +180,7 @@ namespace Semiring
 							if (j == i)
 								continue;
 
-							if ((bCCandidates[i] >= bCCandidates[j]) && (bCCandidates[i] != bCCandidates[j]))
+							if ((bCCandidates[i] >= bCCandidates[j]) && (bCCandidates[i] != bCCandidates[j]) &&  (baseCandidates[i].size() > baseCandidates[j].size()))
 							{
 								good = false;
 								break;
@@ -306,7 +308,8 @@ namespace Semiring
 				std::cout << "\tCost matrix multiplication step" << std::endl;
 			#endif
 			auto nC = cMatrix * costStep;
-			if (nC == cMatrix)
+			// Cut early if paths dont change (faster if we just do costs dont change)
+			if (pPMatrix == pathMatrix)//if (nC == cMatrix)
 			{
 				return pathMatrix;
 			}
@@ -334,6 +337,7 @@ namespace Semiring
 
 			pCMatrix = cMatrix;
 			cMatrix = nC;
+			pPMatrix = pathMatrix;
 		}
 
 		return pathMatrix;
@@ -343,12 +347,18 @@ namespace Semiring
 	std::vector<double> IndegreeOptimalCentrality(Semiring::Matrix<Semiring::FreeIdempotentSemiring<Semiring::FreeIdempotentSemiring<Semiring::FreeMonoid<N * N>>>,N,N> optimalPaths)
 	{
 		std::vector<double> centralities(N);
+		double nC = 0;
 
 		for (int i = 0; i < N; i++)
 		{
 			for (int j = 0; j < N; j++)
 			{
 				auto minimals = optimalPaths(i,j).getSet();
+				if (minimals.size() != 0)
+				{
+					nC += 1;
+				}
+
 				for (auto it = minimals.begin(); it != minimals.end(); it++)
 				{
 					std::vector<bool> represented(N);
@@ -372,10 +382,22 @@ namespace Semiring
 					{
 						if (represented[k])
 						{
-							centralities[k] += ((double)1.0 / (double)minimals.size())/(double)(N * N);
+							centralities[k] += ((double)1.0 / (double)minimals.size());
 						}
 					}
 				}
+			}
+		}
+
+		for (int k = 0; k < N; k++)
+		{
+			if (nC != 0)
+			{
+				centralities[k] = centralities[k] / nC;
+			}
+			else
+			{
+				centralities[k] = 0;
 			}
 		}
 
@@ -387,11 +409,17 @@ namespace Semiring
 	{
 		std::vector<double> centralities(N);
 
+		double nC = 0.0;
 		for (int i = 0; i < N; i++)
 		{
 			for (int j = 0; j < N; j++)
 			{
 				auto minimals = optimalPaths(i,j).getSet();
+				if (minimals.size() != 0)
+				{
+					nC += 1.0;
+				}
+
 				for (auto it = minimals.begin(); it != minimals.end(); it++)
 				{
 					std::vector<bool> represented(N);
@@ -415,10 +443,22 @@ namespace Semiring
 					{
 						if (represented[k])
 						{
-							centralities[k] += ((double)1.0 / (double)minimals.size())/(double)(N * N);
+							centralities[k] += ((double)1.0 / (double)minimals.size());
 						}
 					}
 				}
+			}
+		}
+
+		for (int k = 0; k < N; k++)
+		{
+			if (nC != 0)
+			{
+				centralities[k] = centralities[k] / nC;
+			}
+			else
+			{
+				centralities[k] = 0;
 			}
 		}
 
@@ -426,15 +466,43 @@ namespace Semiring
 	}
 
 	template<unsigned int N>
+	double Connectivity(Semiring::Matrix<Semiring::FreeIdempotentSemiring<Semiring::FreeIdempotentSemiring<Semiring::FreeMonoid<N * N>>>,N,N> optimalPaths)
+	{
+		double nC = 0.0;
+
+		for (int i = 0; i < N; i++)
+		{
+			for (int j = 0; j < N; j++)
+			{
+				if (i == j)
+					continue;
+				auto minimals = optimalPaths(i,j).getSet();
+				if (minimals.size() != 0)
+				{
+					nC += 1.0;
+				}
+			}
+		}
+
+		return nC / ((double)(N * N - N));
+	}
+
+	template<unsigned int N>
 	std::vector<double> StorageCentrality(Semiring::Matrix<Semiring::FreeIdempotentSemiring<Semiring::FreeIdempotentSemiring<Semiring::FreeMonoid<N * N>>>,N,N> optimalPaths)
 	{
 		std::vector<double> centralities(N);
+
+		double nC = 0.0;
 
 		for (int i = 0; i < N; i++)
 		{
 			for (int j = 0; j < N; j++)
 			{
 				auto minimals = optimalPaths(i,j).getSet();
+				if (minimals.size() != 0)
+				{
+					nC += 1.0;
+				}
 				for (auto it = minimals.begin(); it != minimals.end(); it++)
 				{
 					std::vector<bool> represented(N);
@@ -458,10 +526,22 @@ namespace Semiring
 					{
 						if (represented[k])
 						{
-							centralities[k] += ((double)1.0 / (double)minimals.size())/(double)(N * N);
+							centralities[k] += ((double)1.0 / (double)minimals.size());
 						}
 					}
 				}
+			}
+		}
+
+		for (int k = 0; k < N; k++)
+		{
+			if (nC != 0)
+			{
+				centralities[k] = centralities[k] / nC;
+			}
+			else
+			{
+				centralities[k] = 0;
 			}
 		}
 
