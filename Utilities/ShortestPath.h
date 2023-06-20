@@ -132,7 +132,8 @@ namespace Semiring
 					}
 
 					#ifdef VERBOSE
-						std::cout << "\t\t Reducing entry ("<< t << "," << d << ")" << std::endl;
+						std::cout << "\t\t["<< i << "] Reducing entry ("<< t << "," << d << ")" << std::endl;
+						std::cout << "\t\t\t Cost: " << std::endl << cMatrix(t,d) << std::endl;
 					#endif
 					std::unordered_set<Semiring::FreeIdempotentSemiring<Semiring::FreeMonoid<N * N>>> availPaths;
 					std::unordered_map<Semiring::FreeMonoid<N * N>, int> pMap;
