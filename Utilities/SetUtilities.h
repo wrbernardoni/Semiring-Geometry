@@ -341,8 +341,8 @@ namespace Semiring
 
 			int goalSize = (top.size() + avgDepsize)/2;
 
-			if (minimals.size() > 10)
-				goalSize = (top.size() + std::max((int)((minCount + minimals.size() - 1)/minimals.size()), avgDepsize))/2;
+			if (minimals.size() > 0)
+				goalSize = (top.size() + std::max((int)((minCount)/minimals.size()), avgDepsize))/2;
 
 			if (goalSize > top.size() - 1)
 				goalSize = top.size() - 1;//top.size()/2 + top.size()%2;
