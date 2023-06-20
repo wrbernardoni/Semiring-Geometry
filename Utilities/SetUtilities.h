@@ -316,6 +316,7 @@ namespace Semiring
 			unsigned int oracleCalls = 0;
 		#endif
 
+		int pGoal = -1;
 		while (que.size() != 0)
 		{
 			std::unordered_set<S> top = que.top();
@@ -339,11 +340,22 @@ namespace Semiring
 				avgDepsize = (depC + depN - 1)/(depN);
 
 			int goalSize = (top.size() + avgDepsize)/2;
+
 			if (minimals.size() > 10)
 				goalSize = (top.size() + std::max((int)((minCount + minimals.size() - 1)/minimals.size()), avgDepsize))/2;
 
 			if (goalSize > top.size() - 1)
 				goalSize = top.size() - 1;//top.size()/2 + top.size()%2;
+
+
+			if ((pGoal != -1))
+			{
+				int tG = (top.size() + pGoal)/2;
+				if (tG > goalSize)
+					goalSize = tG;
+			}
+			pGoal = -1;
+
 			#ifdef VERBOSE
 				std::cout << "\t\t\t\t(g)" << top.size() << "-> ? #min:" << minimals.size() << "(" << (minimals.size() != 0 ? ((minCount + minimals.size() - 1)/minimals.size())  : 0) << ") #dep:" << dependents.size() << "(" << avgDepsize << ") #queue:" << que.size() << " goalSize:" << goalSize << " oracleCalls:" << oracleCalls;
 				std::cout << "      \r" << std::flush;
@@ -364,6 +376,7 @@ namespace Semiring
 				}
 				else
 				{
+					pGoal = subset.size();
 					std::erase_if(dependents, [&subset](auto const& e){ return SubsetEq(e, subset);});
 					dependents.push_back(subset);
 				}
@@ -372,6 +385,12 @@ namespace Semiring
 			}
 			//		If there are no such subsets, add top to minimal if it does not contain any existing minimals
 			que.pop();
+
+			while (que.size() > 1)
+			{
+				que.pop();
+			}
+
 			bool bad = false;
 			for (auto it = minimals.begin(); it != minimals.end(); it++)
 			{
