@@ -470,7 +470,7 @@ namespace Semiring
 			// std::cout << "a" << a << " b" << b << " c" << c << " d" << d << " e" << e << std::endl;
 
 			lContact = Contact(c,e,0,cMI,eI);
-			rContact = Contact(d,d + (b-a), (aMI ? 0 : a - d), aMI, bI);
+			rContact = Contact(d,d + (b-a), (aMI ? l.delay + r.delay : a - d), aMI, bI);
 			// Compute canonical form
 			// lContact = l;
 			// rContact = r;
