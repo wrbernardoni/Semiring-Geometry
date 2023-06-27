@@ -1,5 +1,5 @@
 CC = g++
-CFLAGS  = -o3 --std=c++20
+CFLAGS  = -o3 --std=c++20 -fopenmp
 
 # LDFLAGS=-lssl
 # LDFLAGS+=-lcrypto
@@ -23,7 +23,7 @@ UTILITYSOURCES=$(wildcard Utilities/*.cpp)
 UTILITYOBJECTS=$(patsubst Utilities/%.cpp, %.o, $(UTILITYSOURCES))
 UTILITYCOMPILED=$(patsubst %.o, build/%.o, $(UTILITYOBJECTS))
 
-all: BuildPath TropicalDStar StorageDemo PolygonTest CGRTest
+all: BuildPath TropicalDStar StorageDemo PolygonTest CGRTest CGRAnalysis
 
 BuildPath : 
 	mkdir -p build
@@ -36,6 +36,10 @@ PolygonTest : Utilities PolygonTests.cpp
 
 CGRTest : Utilities CGRTest.cpp
 	$(CC) $(CFLAGS) -o build/CGRTest CGRTest.cpp $(UTILITYCOMPILED) $(INCLUDES) $(LDFLAGS) 
+
+CGRAnalysis : Utilities CGR_Analysis.cpp
+	$(CC) $(CFLAGS) -o build/CGRAnalysis CGR_Analysis.cpp $(UTILITYCOMPILED) $(INCLUDES) $(LDFLAGS) -D MATRIX_VERBOSE
+
 
 StorageDemo : Utilities StorageDemo.cpp
 	$(CC) $(CFLAGS) -o build/StorageDemo StorageDemo.cpp $(UTILITYCOMPILED) $(INCLUDES) $(LDFLAGS) 
