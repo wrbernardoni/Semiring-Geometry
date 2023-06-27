@@ -1,6 +1,12 @@
 #ifndef MATRIX_H_
 #define MATRIX_H_
 
+#ifdef MATRIX_VERBOSE
+#include <iostream>
+#endif
+
+#include <omp.h>
+
 namespace Semiring
 {
 	template<typename T, unsigned int R = 1, unsigned int C = 1> class Matrix
@@ -82,6 +88,7 @@ namespace Semiring
 		const Matrix<T,R,C> operator+ (const Matrix<T,R,C>& rhs) const
 		{
 			Matrix<T,R,C> m;
+			#pragma omp parallel for
 			for (int i = 0; i < R; i++)
 			{
 				for (int j = 0; j < C; j++)
@@ -104,15 +111,27 @@ namespace Semiring
 
 		const Matrix<T,R,R> operator* (const Matrix<T,C,R>& rhs) const
 		{
+			#ifdef MATRIX_VERBOSE
+			int complete = 0;
+			#endif
 			Matrix<T,R,R> m;
-			for (int i = 0; i < R; i++)
+			#pragma omp parallel for
+			for (int i = 0; i < R * R; i++)
 			{
-				for (int j = 0; j < R; j++)
+				for (int k = 0; k < C; k++)
+					m.data[i/R][i%R] = m.data[i/R][i%R] + data[i/R][k] * rhs.data[k][i%R];
+				#ifdef MATRIX_VERBOSE
+				#pragma omp critical
 				{
-					for (int k = 0; k < C; k++)
-						m.data[i][j] = m.data[i][j] + data[i][k] * rhs.data[k][j];
+					complete++;
+					std::cout << "\r\tMultiplying. " << complete << "/" << R * R << " entries computed\r" << std::flush;
 				}
+				#endif
 			}
+
+			#ifdef MATRIX_VERBOSE
+					std::cout << std::endl;
+			#endif
 			return m;
 		}
 
