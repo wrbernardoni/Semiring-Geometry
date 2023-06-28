@@ -339,8 +339,8 @@ int main(int argc, char* argv[])
 		cout << "\tCumulant saved" << endl;
 
 		cout << "Generating the " << i+2 << " step matrix" << endl;
-		nsStep = nsStep + oneStep * nC * oneStep;
-
+		nsStep = nsStep + Conjugate(nC, oneStep); //// oneStep * nC * oneStep;
+ 
 		cout << "Saving the " << i+2 << " step matrix to " << (OutputPath + "_step_" + to_string(i+2) + ".CSG") << endl;
 		outf.open((OutputPath + "_step_" + to_string(i+2) + ".CSG"));
 
