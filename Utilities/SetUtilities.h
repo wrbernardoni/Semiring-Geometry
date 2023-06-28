@@ -37,7 +37,8 @@ namespace Semiring
 		return ret;
 	};
 
-	template<typename S> Subset(std::unordered_set<S> set, std::function<bool(S)> f)
+	template<typename S>
+	std::unordered_set<S>  Subset(std::unordered_set<S> set, std::function<bool(S)> f)
 	{
 		std::unordered_set<S> ret;
 		for (auto itr = set.begin(); itr != set.end(); itr++)
