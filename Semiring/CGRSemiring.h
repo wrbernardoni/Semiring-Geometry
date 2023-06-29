@@ -1193,8 +1193,8 @@ namespace Semiring
 
 		const CGRSemiring operator+ (const CGRSemiring& rhs) const
 		{
-			CGRSemiring s = rhs;
-			for (auto c : contacts)
+			CGRSemiring s = (*this);
+			for (auto c : rhs.contacts)
 			{
 				s.Add(c);
 			}
@@ -1226,15 +1226,20 @@ namespace Semiring
 			std::list<CSC_Contact> newContacts;
 			auto itr = contacts.begin();
 
+			bool subsumed = false;
 			while (itr != contacts.end())
 			{				
 				if (CGRSemiring(*itr) <= CGRSemiring(dom))
 				{
-					dom = (*itr);
+					// dom = (*itr);
+					CSC_Contact toFront = (*itr);
+					contacts.erase(itr);
+					contacts.push_front(toFront);
 					return *this;
 				}
 				else if (CGRSemiring(*itr) >= CGRSemiring(dom))
 				{
+					subsumed = true;
 				}
 				else
 				{
@@ -1245,7 +1250,10 @@ namespace Semiring
 				itr++;
 			}
 
-			newContacts.push_back(dom);
+			if (subsumed)
+				newContacts.push_front(dom);
+			else
+				newContacts.push_back(dom);
 			contacts = newContacts;
 
 			return *this;
