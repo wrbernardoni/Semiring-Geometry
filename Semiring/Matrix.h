@@ -151,12 +151,17 @@ namespace Semiring
 				}
 				
 				#ifdef MATRIX_VERBOSE
-				#pragma omp critical
+				#pragma omp atomic
+				complete++;
+
+				if (complete % (R * R) == 0)
 				{
-					complete++;
-					if (complete % (R * R) == 0)
+					#pragma omp critical
+					{
 						std::cout << "\rConjugating. " << complete / (R * R) << "/" << R * R << " entries computed\r" << std::flush;
+					}
 				}
+				
 				#endif
 			}
 
@@ -178,22 +183,75 @@ namespace Semiring
 			int complete = 0;
 			#endif
 			Matrix<T,R,R> m;
+
+			T summand[R * C * R];
+
+			omp_lock_t sLock[R * R];
+
 			#pragma omp parallel for
 			for (int i = 0; i < R * R; i++)
 			{
-				for (int k = 0; k < C; k++)
-					m.data[i/R][i%R] = m.data[i/R][i%R] + data[i/R][k] * rhs.data[k][i%R];
+				omp_init_lock(&sLock[i]);
+			}
+
+			#ifdef MATRIX_VERBOSE
+				std::cout << "\r\tMultiplying. Computing summands\r" << std::flush;
+			#endif
+
+			#pragma omp parallel for
+			for (int i = 0; i < R * C * R; i++)
+			{
+				int j = i / (R * C);
+				int k = (i % (R * C))/R;
+				int l = (i % (R * C))%R;
+				summand[i] = data[j][k] * rhs.data[k][l];
 				#ifdef MATRIX_VERBOSE
-				#pragma omp critical
-				{
+					#pragma omp atomic
 					complete++;
-					std::cout << "\r\tMultiplying. " << complete << "/" << R * R << " entries computed\r" << std::flush;
-				}
+
+					if ((complete % C) == 0)
+					{
+						#pragma omp critical
+						{
+							std::cout << "\r\tAdding summands. " << complete << "/" << R * C * R << " entries computed\r" << std::flush;
+						}
+					}
 				#endif
 			}
 
 			#ifdef MATRIX_VERBOSE
-					std::cout << std::endl;
+				complete = 0;
+			#endif
+
+			#pragma omp parallel for
+			for (int i = 0; i < R * C * R; i++)
+			{
+				int j = i / (R * C);
+				int k = (i % (R * C))/R;
+				int l = (i % (R * C))%R;
+				
+				omp_set_lock(&sLock[j * R + l]);
+				m.data[j][l] = m.data[j][l] + summand[j * (R * C) + k * (R) + l];
+				omp_unset_lock(&sLock[j * R + l]);
+
+				#ifdef MATRIX_VERBOSE
+					#pragma omp atomic
+					complete++;
+
+					if ((complete % C) == 0)
+					{
+						#pragma omp critical
+						{
+							std::cout << "\r\tAdding summands. " << complete << "/" << R * C * R << " entries computed\r" << std::flush;
+						}
+					}
+				#endif
+			}
+
+			
+
+			#ifdef MATRIX_VERBOSE
+				std::cout << std::endl;
 			#endif
 			return m;
 		}
