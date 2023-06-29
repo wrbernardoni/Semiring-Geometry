@@ -90,6 +90,9 @@ namespace Semiring
 		#ifdef USEOPENMP
 		const Matrix<T,R,C> operator+ (const Matrix<T,R,C>& rhs) const
 		{
+			#ifdef MATRIX_VERBOSE
+			int complete = 0;
+			#endif
 			Matrix<T,R,C> m;
 			#pragma omp parallel for
 			for (int i = 0; i < R; i++)
@@ -97,8 +100,22 @@ namespace Semiring
 				for (int j = 0; j < C; j++)
 				{
 					m.data[i][j] = data[i][j] + rhs.data[i][j];
+
+					#ifdef MATRIX_VERBOSE
+						#pragma omp atomic
+						complete++;
+
+						#pragma omp critical
+						{
+							std::cout << "\r\tAdding entries " << complete << "/" << R * C << " entries computed       \r" << std::flush;
+						}
+					#endif
 				}
 			}
+
+			#ifdef MATRIX_VERBOSE
+				std::cout << std::endl;
+			#endif
 			return m;
 		}
 		#else
