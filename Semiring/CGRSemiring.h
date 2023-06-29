@@ -1193,13 +1193,8 @@ namespace Semiring
 
 		const CGRSemiring operator+ (const CGRSemiring& rhs) const
 		{
-			CGRSemiring s;
+			CGRSemiring s = rhs;
 			for (auto c : contacts)
-			{
-				s.Add(c);
-			}
-
-			for (auto c : rhs.contacts)
 			{
 				s.Add(c);
 			}
