@@ -154,7 +154,8 @@ namespace Semiring
 				#pragma omp critical
 				{
 					complete++;
-					std::cout << "\rConjugating. " << complete << "/" << R * R * R * R << " entries computed\r" << std::flush;
+					if (complete % (R * R) == 0)
+						std::cout << "\rConjugating. " << complete / (R * R) << "/" << R * R << " entries computed\r" << std::flush;
 				}
 				#endif
 			}
