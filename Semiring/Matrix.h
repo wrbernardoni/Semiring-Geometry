@@ -230,9 +230,12 @@ namespace Semiring
 				int k = (i % (R * C))/R;
 				int l = (i % (R * C))%R;
 				
-				omp_set_lock(&sLock[j * R + l]);
-				m.data[j][l] = m.data[j][l] + summand[j * (R * C) + k * (R) + l];
-				omp_unset_lock(&sLock[j * R + l]);
+				if (summand[j * (R * C) + k * (R) + l] != T::Zero())
+				{
+					omp_set_lock(&sLock[j * R + l]);
+					m.data[j][l] = m.data[j][l] + summand[j * (R * C) + k * (R) + l];
+					omp_unset_lock(&sLock[j * R + l]);
+				}
 
 				#ifdef MATRIX_VERBOSE
 					#pragma omp atomic
