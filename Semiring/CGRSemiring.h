@@ -1226,8 +1226,6 @@ namespace Semiring
 			std::list<CSC_Contact> newContacts;
 			auto itr = contacts.begin();
 
-			bool contained = ((*this) <= c);
-
 			bool subsumed = false;
 			while (itr != contacts.end())
 			{				
@@ -1254,7 +1252,7 @@ namespace Semiring
 
 			if (subsumed)
 				newContacts.push_front(dom);
-			else if (!contained)
+			else
 				newContacts.push_back(dom);
 			contacts = newContacts;
 
