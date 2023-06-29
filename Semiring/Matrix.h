@@ -226,9 +226,9 @@ namespace Semiring
 			#pragma omp parallel for
 			for (int i = 0; i < R * C * R; i++)
 			{
-				int k = i / (R * C);
-				int j = (i % (R * C))/R;
-				int l = (i % (R * C))%R;
+				int j = i / (R * C);
+				int l = (i % (R * C))/R;
+				int k = (i % (R * C))%R;
 				
 				if (summand[j * (R * C) + k * (R) + l] != T::Zero())
 				{
