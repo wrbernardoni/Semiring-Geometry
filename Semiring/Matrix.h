@@ -5,7 +5,9 @@
 #include <iostream>
 #endif
 
+#ifdef USEOPENMP
 #include <omp.h>
+#endif
 
 namespace Semiring
 {
@@ -85,6 +87,7 @@ namespace Semiring
 			return (lhs >= rhs) && (lhs != rhs);
 		}
 
+		#ifdef USEOPENMP
 		const Matrix<T,R,C> operator+ (const Matrix<T,R,C>& rhs) const
 		{
 			Matrix<T,R,C> m;
@@ -98,6 +101,20 @@ namespace Semiring
 			}
 			return m;
 		}
+		#else
+		const Matrix<T,R,C> operator+ (const Matrix<T,R,C>& rhs) const
+		{
+			Matrix<T,R,C> m;
+			for (int i = 0; i < R; i++)
+			{
+				for (int j = 0; j < C; j++)
+				{
+					m.data[i][j] = data[i][j] + rhs.data[i][j];
+				}
+			}
+			return m;
+		}
+		#endif
 
 		friend Matrix<T,R,C> operator+( const T& lhs, const Matrix<T,R,C>& rhs)
 		{
@@ -109,74 +126,7 @@ namespace Semiring
 			return rhs * Matrix<T,R,C>::One() + lhs;
 		}
 
-		// Computes AXA
-		friend Matrix<T,R,R> Conjugate(const Matrix<T,R,R> X, const Matrix<T,R,R> A)
-		{
-			#ifdef MATRIX_VERBOSE
-			int complete = 0;
-			#endif
-
-			Matrix<T,R,R> m;
-
-			T sum[R * R];
-			omp_lock_t sLock[R * R];
-
-			#pragma omp parallel for
-			for (int i = 0; i < R * R; i++)
-			{
-				sum[i] = T::Zero();
-				omp_init_lock(&sLock[i]);
-			}
-
-			#pragma omp parallel for
-			for (int it = 0; it < R * R * R * R; it++)
-			{
-				int k = it / (R * R * R);
-				int l = (it % (R * R * R))/(R * R);
-				int i = ((it % (R * R * R))%(R * R))/R;
-				int j = ((it % (R * R * R))%(R * R))%R;
-				// #pragma omp critical
-				// {
-				// 	std::cout << it << " " << i << " " << j << " " << k << " " << l << std::endl;
-				// }
-
-
-				T add = A.at(i,l) * X.at(l,k) * A.at(k,j);
-
-				if (add != T::Zero())
-				{
-					omp_set_lock(&sLock[R * i + j]);
-					sum[R * i + j] = sum[R * i + j] + add;	
-					omp_unset_lock(&sLock[R * i + j]);
-				}
-				
-				#ifdef MATRIX_VERBOSE
-				#pragma omp atomic
-				complete++;
-
-				if (complete % (R * R) == 0)
-				{
-					#pragma omp critical
-					{
-						std::cout << "\rConjugating. " << complete / (R * R) << "/" << R * R << " entries computed\r" << std::flush;
-					}
-				}
-				
-				#endif
-			}
-
-			#pragma omp parallel for
-			for (int i = 0; i < R * R; i++)
-			{
-				m.data[i / R][i % R] = sum[i];
-			}
-
-			#ifdef MATRIX_VERBOSE
-					std::cout << std::endl;
-			#endif
-			return m;
-		}
-
+		#ifdef USEOPENMP
 		const Matrix<T,R,R> operator* (const Matrix<T,C,R>& rhs) const
 		{
 			#ifdef MATRIX_VERBOSE
@@ -258,6 +208,36 @@ namespace Semiring
 			#endif
 			return m;
 		}
+		#else
+		const Matrix<T,R,R> operator* (const Matrix<T,C,R>& rhs) const
+		{
+			#ifdef MATRIX_VERBOSE
+			int complete = 0;
+			#endif
+			Matrix<T,R,R> m;
+
+			for (int i = 0; i < R; i++)
+			{
+				for (int j = 0; j < R; j++)
+				{
+					m.data[i][j] = T::Zero();
+					for (int k = 0; k < C; k++)
+					{
+						m.data[i][j] = m.data[i][j] + data[i][k] * rhs.data[k][j];
+					}
+					#ifdef MATRIX_VERBOSE
+					std::cout << "Computing entry (" << i << "," << j << ")    \r" << std::flush;
+					#endif
+				}
+			}
+			
+
+			#ifdef MATRIX_VERBOSE
+				std::cout << std::endl;
+			#endif
+			return m;
+		}
+		#endif
 
 		const Matrix<T,R,C> operator* (const T& rhs) const
 		{
@@ -271,6 +251,7 @@ namespace Semiring
 			}
 			return m;
 		}
+
 		friend Matrix<T,R,C> operator*( const T& lhs, const Matrix<T,R,C>& rhs)
 		{
 			Matrix<T,R,C> m;

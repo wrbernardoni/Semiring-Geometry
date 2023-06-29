@@ -18,7 +18,9 @@ const int NumberOfNodes = 10; // TODO make this dynamic. Unfortunately so much o
 const int MaxCumulant = 50;
 const int StorageN = 1;
 
+#ifdef USEOPENMP
 #include <omp.h>
+#endif
 
 struct ContactFrame
 {
@@ -31,7 +33,9 @@ struct ContactFrame
 
 int main(int argc, char* argv[])
 {
+	#ifdef USEOPENMP
 	omp_set_num_threads(4);
+	#endif
 
 	if ((argc != 4) && (argc != 3))
 	{

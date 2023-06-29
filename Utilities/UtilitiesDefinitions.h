@@ -1,6 +1,6 @@
 #ifndef UTILITIES_DEFINITIONS_H_
 #define UTILITIES_DEFINITIONS_H_
 
-#define VERBOSE 1
+// #define VERBOSE 1
 
 #endif

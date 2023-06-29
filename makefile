@@ -1,5 +1,5 @@
 CC = g++
-CFLAGS  = -o3 --std=c++2a -fopenmp
+CFLAGS  = -o3 --std=c++2a -fopenmp -D VERBOSE -D USEOPENMP
 
 # LDFLAGS=-lssl
 # LDFLAGS+=-lcrypto
