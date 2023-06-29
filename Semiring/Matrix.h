@@ -213,7 +213,7 @@ namespace Semiring
 					{
 						#pragma omp critical
 						{
-							std::cout << "\r\tMultiplying summands. " << complete << "/" << R * C * R << " entries computed\r" << std::flush;
+							std::cout << "\r\tMultiplying summands. " << complete << "/" << R * C * R << " entries computed       \r" << std::flush;
 						}
 					}
 				#endif
@@ -245,7 +245,7 @@ namespace Semiring
 					{
 						#pragma omp critical
 						{
-							std::cout << "\r\tAdding summands. " << complete << "/" << R * C * R << " entries computed\r" << std::flush;
+							std::cout << "\r\tAdding summands. " << complete << "/" << R * C * R << " entries computed           \r" << std::flush;
 						}
 					}
 				#endif
