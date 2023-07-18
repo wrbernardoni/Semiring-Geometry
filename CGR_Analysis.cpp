@@ -146,7 +146,7 @@ int main(int argc, char* argv[])
 		string dH2;
 		stringstream dHSS(dH);
 		getline(dHSS, dH1, ' ');
-		if (dH1 != "Distance")
+		if ((dH1 != "Distance") && (dH1 != "Dist"))
 			break;
 
 		getline(dHSS, dH1, ' ');
