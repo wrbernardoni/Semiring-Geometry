@@ -14,7 +14,7 @@ using namespace Semiring;
 
 // Speed of light in km/s
 const double speedOfLight = 299792.458;
-const int NumberOfNodes = 10; // TODO make this dynamic. Unfortunately so much of our code assumes its not.
+const int NumberOfNodes = 30; // TODO make this dynamic. Unfortunately so much of our code assumes its not.
 const int MaxCumulant = 50;
 const int StorageN = 1;
 
@@ -102,7 +102,10 @@ int main(int argc, char* argv[])
 		nodes.insert(id1);
 		nodes.insert(id2);
 
-		frame.contact = id1 + " - " + id2;
+		string min = (id1 < id2 ? id1 : id2);
+		string max = (id1 < id2 ? id2 : id1);
+
+		frame.contact = min + " - " + max;
 
 		string riseStr;
 		getline(tStream, riseStr, ',');
@@ -153,7 +156,12 @@ int main(int argc, char* argv[])
 		getline(dHSS, dH2, ' ');
 		getline(dHSS, dH2, ' ');
 
-		headers.push_back(dH1 + " - " + dH2);
+		string min = (dH1 < dH2 ? dH1 : dH2);
+		string max = (dH1 < dH2 ? dH2 : dH1);
+
+		cout << min + " - " + max << endl;
+
+		headers.push_back(min + " - " + max);
 	}
 
 
@@ -230,6 +238,8 @@ int main(int argc, char* argv[])
 		int f = NodetoID[contacts[i].from];
 		int t = NodetoID[contacts[i].to];
 		string c = contacts[i].contact;
+
+		cout << c << endl;
 
 		if ((f >= NumberOfNodes) || (t >= NumberOfNodes))
 			continue;
@@ -324,6 +334,7 @@ int main(int argc, char* argv[])
 
 	cout << "Beginning cumulant generation" << endl;
 	auto nC = step;
+	auto exp = CGRMatrix;
 	for (int i = 1; i < MaxCumulant; i++)
 	{
 		cout << "\t[" << i << "] cumulant generated " << endl;
@@ -343,7 +354,7 @@ int main(int argc, char* argv[])
 		cout << "\tCumulant saved" << endl;
 
 		cout << "Generating the " << i+2 << " step matrix" << endl;
-		nsStep = nsStep + (oneStep * nC) * oneStep;
+		nsStep = nsStep + (oneStep * exp) * oneStep;
  
 		cout << "Saving the " << i+2 << " step matrix to " << (OutputPath + "_step_" + to_string(i+2) + ".CSG") << endl;
 		outf.open((OutputPath + "_step_" + to_string(i+2) + ".CSG"));
@@ -359,7 +370,8 @@ int main(int argc, char* argv[])
 		cout << "\tStep matrix saved" << endl;
 
 		cout << "Generating the " << i + 1 << " cumulant" << endl;
-		auto next = nC * step;
+		exp = exp * CGRMatrix;
+		auto next = nC + exp;
 
 		if (next == nC)
 		{
