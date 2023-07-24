@@ -8,6 +8,8 @@
 #include <set>
 #include <map>
 
+#define MP_EPSILON 0.001
+
 
 // This is the minimal semiring to do contact graph routing
 // elements are sums + products of contacts (start time, end time, one way light time)
@@ -222,8 +224,8 @@ namespace Semiring
 			bool bInfinite = rContact.rInf;
 			double b = rContact.delay + rContact.end;
 
-			bool dInfinite = rContact.lInf;
-			double d = rContact.start;
+			bool dInfinite = rContact.lInf && lContact.lInf;
+			double d = std::min(std::max(rContact.start,lContact.start),lContact.end);
 
 			if (yInf < 0)
 			{
@@ -303,6 +305,50 @@ namespace Semiring
 		std::list<double> clippedIntersections(CSC_Contact& other) const
 		{
 			std::list<double> clips;
+
+			if (other.justContact && justContact)
+			{
+				// Only possible clips can be top and bottom
+				return clips;
+			}
+			else if (justContact)
+			{
+				if (!other.rContact.rInf)
+				{
+					if (Contains(other.rContact.end + other.rContact.delay, other.rContact.end + other.rContact.delay - lContact.delay) 
+						&& other.Contains(other.rContact.end + other.rContact.delay, other.rContact.end + other.rContact.delay - lContact.delay))
+						clips.push_back(other.rContact.end + other.rContact.delay - lContact.delay);
+				}
+
+				if (!other.rContact.lInf)
+				{
+					if (Contains(other.rContact.start + other.rContact.delay, other.rContact.start + other.rContact.delay - lContact.delay) &&
+						other.Contains(other.rContact.start + other.rContact.delay, other.rContact.start + other.rContact.delay - lContact.delay))
+						clips.push_back(other.rContact.start + other.rContact.delay - lContact.delay);
+				}
+				
+				return clips;
+			}
+			else if (other.justContact)
+			{
+				if (!rContact.rInf)
+				{
+					if (Contains(rContact.end + rContact.delay, rContact.end + rContact.delay - other.lContact.delay) 
+						&& other.Contains(rContact.end + rContact.delay, rContact.end + rContact.delay - other.lContact.delay))
+						clips.push_back( rContact.end + rContact.delay - other.lContact.delay);
+				}
+
+				if (!rContact.lInf)
+				{
+					if (Contains(rContact.start + rContact.delay, rContact.start + rContact.delay - other.lContact.delay) 
+						&& other.Contains(rContact.start + rContact.delay, rContact.start + rContact.delay - other.lContact.delay))
+						clips.push_back( rContact.start + rContact.delay - other.lContact.delay);
+				}
+				
+				return clips;
+			}
+
+			
 			/// Return list of y values where my diagonal clips the other
 			bool cInfinite = other.lContact.lInf;
 			double c = other.lContact.start;
@@ -316,8 +362,8 @@ namespace Semiring
 			bool bInfinite = other.rContact.rInf;
 			double b = other.rContact.delay + other.rContact.end;
 
-			bool dInfinite = other.rContact.lInf;
-			double d = other.rContact.start;
+			bool dInfinite = other.rContact.lInf && other.lContact.lInf;
+			double d = std::min(std::max(other.rContact.start,other.lContact.start),other.lContact.end);
 
 			if (other.justContact)
 				return std::list<double>();
@@ -416,6 +462,56 @@ namespace Semiring
 				return;
 			}
 
+			double e1;
+			bool e1i = false;
+			if (l.rInf && r.rInf)
+			{
+				e1 = 0;
+				e1i = true;
+			}
+			else if (l.rInf)
+			{
+				e1 = r.end - l.delay;
+			}
+			else if (r.rInf)
+			{
+				e1 = l.end;
+			}
+			else
+			{
+				e1 = std::min(l.end,r.end - l.delay);
+			}
+			double s1;
+			bool s1i = false;
+			if (r.lInf && l.lInf)
+			{
+				s1 = 0;
+				s1i = true;
+			}
+			else if (r.lInf)
+			{
+				s1 = l.start;
+			}
+			else if (l.lInf)
+			{
+				s1 = r.start - l.delay;
+			}
+			else
+			{
+				s1 = std::max(r.start - l.delay, l.start);
+			}
+
+			lContact = Contact(l.start, e1, 0, l.lInf, e1i);
+			rContact = Contact(s1, r.end - l.delay, l.delay + r.delay, s1i, r.rInf);
+			justContact = false;
+			if (lContact.empty || rContact.empty)
+			{
+				lContact = Contact(true);
+				justContact = true;
+			}
+
+			/*
+			
 			double a = std::max(l.start + l.delay + r.delay, r.start + r.delay);
 			if (l.lInf)
 				a = r.start + r.delay;
@@ -466,6 +562,7 @@ namespace Semiring
 				justContact = true;
 				return;
 			}
+			
 
 			// std::cout << "a" << a << " b" << b << " c" << c << " d" << d << " e" << e << std::endl;
 
@@ -475,6 +572,7 @@ namespace Semiring
 			// lContact = l;
 			// rContact = r;
 			justContact = false;
+			*/
 		}
 
 		const CSC_Contact operator* (const CSC_Contact& rhs) const
@@ -506,6 +604,39 @@ namespace Semiring
 				Contact lConj(0, mid.end, 0, true, mid.rInf);
 				Contact rConj(mid.start, 0, mid.delay, mid.lInf, true);
 				return CSC_Contact(lContact * lConj, rConj * rhs.rContact);
+			}
+		}
+
+		// Returns -1 if the storage need is infinite
+		const double StorageNeed()
+		{
+			if (justContact)
+				return 0;
+			else
+			{
+				double bDif = rContact.start - lContact.start - rContact.delay;
+				double eDif = rContact.end - lContact.end - rContact.delay;
+				if (rContact.lInf || rContact.rInf)
+					return 0;
+				if (lContact.rInf && lContact.lInf)
+				{
+					return 0;
+				}
+				else if (lContact.lInf)
+				{
+					// eDif or 0
+					return std::max(0.0, eDif);
+				}
+				else if (lContact.rInf)
+				{
+					// bDif or 0
+					return std::max(0.0, bDif);
+				}
+				else
+				{
+					// max(min eDif, aDif, 0)
+					return std::max(0.0,std::min(bDif, eDif));
+				}
 			}
 		}
 
@@ -633,7 +764,7 @@ namespace Semiring
 
 				// Check if x is contained
 				// Check if in sloping region or flat
-				if ((rContact.lInf) || (y >= rContact.start))
+				if ((rContact.lInf) || (y >= std::min(std::max(rContact.start,lContact.start),lContact.end)))
 				{
 					// Sloping region
 					// check if x is between y + delay and b
@@ -749,8 +880,8 @@ namespace Semiring
 			bool bInfinite = lhs.rContact.rInf;
 			double b = lhs.rContact.delay + lhs.rContact.end;
 
-			bool dInfinite = lhs.rContact.lInf;
-			double d = lhs.rContact.start;
+			bool dInfinite = lhs.rContact.lInf && lhs.lContact.lInf;
+			double d = std::min(std::max(lhs.rContact.start,lhs.lContact.start),lhs.lContact.end);
 
 			if (!rhs.Contains(a,c,(aInfinite? -1 : 0), (cInfinite ? -1 : 0)))
 			{
@@ -922,6 +1053,13 @@ namespace Semiring
 
 				if (c.lContact.rInf)
 					pI = true;
+				else //if (c.justContact)
+					corners.insert(c.lContact.end);
+
+				if (!c.rContact.rInf && !c.lContact.lInf)
+					corners.insert(std::max(c.lContact.start,std::min(c.lContact.end,c.rContact.end)));
+				else if (!c.rContact.rInf)
+					corners.insert(std::min(c.lContact.end,c.rContact.end));
 				else
 					corners.insert(c.lContact.end);
 
@@ -935,7 +1073,7 @@ namespace Semiring
 					mI = true;
 				}
 				else
-					corners.insert(c.rContact.start);
+					corners.insert(std::min(std::max(c.rContact.start,c.lContact.start), c.lContact.end));
 			}
 
 			for (auto c : rhs.contacts)
@@ -947,6 +1085,13 @@ namespace Semiring
 
 				if (c.lContact.rInf)
 					pI = true;
+				else //if (c.justContact)
+					corners.insert(c.lContact.end);
+				
+				if (!c.rContact.rInf && !c.lContact.lInf)
+					corners.insert(std::max(c.lContact.start,std::min(c.lContact.end,c.rContact.end)));
+				else if (!c.rContact.rInf)
+					corners.insert(std::min(c.lContact.end,c.rContact.end));
 				else
 					corners.insert(c.lContact.end);
 
@@ -957,7 +1102,7 @@ namespace Semiring
 						mI = true;
 					}
 					else
-						corners.insert(c.rContact.start);
+						corners.insert(std::min(std::max(c.rContact.start,c.lContact.start), c.lContact.end));
 
 				}
 
@@ -998,7 +1143,10 @@ namespace Semiring
 				it++;
 				while (it != corners.end())
 				{
-					midPoints.insert(((*it) + pVal)/2.0);
+					double d = (*it) - pVal;
+					double m = ((*it) + pVal)/2.0;
+					if (d > MP_EPSILON)
+						midPoints.insert(m);
 					pVal = *it;
 					it++;
 				}
@@ -1016,6 +1164,7 @@ namespace Semiring
 				int leftMIBracket = 0;
 				int leftPIBracket = 0;
 				std::map<double, int> leftbrackets;
+				std::map<double, bool> leftblip;
 				// Step 3: For each midpoint draw a line and segment the line at the edges of shapes in lhs + rhs
 				for (auto c : lhs.contacts)
 				{
@@ -1054,11 +1203,18 @@ namespace Semiring
 						else
 							leftbrackets[w.end] = -1;
 					}
+
+					if ((w.endInf == w.startInf) && (w.endInf == 0) && (w.start == w.end))
+					{
+						// Blip
+						leftblip[w.start] = true;
+					}
 				}
 
 				int rightMIBracket = 0;
 				int rightPIBracket = 0;
 				std::map<double, int> rightbrackets;
+				std::map<double, bool> rightblip;
 				for (auto c : rhs.contacts)
 				{
 					Interval w = c.Width(m);
@@ -1096,6 +1252,12 @@ namespace Semiring
 						else
 							rightbrackets[w.end] = -1;
 					}
+
+					if ((w.endInf == w.startInf) && (w.endInf == 0) && (w.start == w.end))
+					{
+						// Blip
+						rightblip[w.start] = true;
+					}
 				}
 
 				// Step 4: For each segment determine if it is in rhs and not in lhs, if so return false
@@ -1120,7 +1282,7 @@ namespace Semiring
 						}
 						else if (rIt->first < lIt->first)
 						{
-							if ((rIt->second == 0) && lDepth <= 0)
+							if ((rightblip[rIt->first]) && (lDepth <= 0) && !((leftblip.contains(rIt->first)) && leftblip[rIt->first]))
 							{
 								return false;
 							}
@@ -1146,7 +1308,7 @@ namespace Semiring
 					}
 					else
 					{
-						if ((rIt->second == 0) && lDepth <= 0)
+						if ((rightblip[rIt->first]) && (lDepth <= 0) && !((leftblip.contains(rIt->first)) && leftblip[rIt->first]))
 						{
 							return false;
 						}
@@ -1228,8 +1390,23 @@ namespace Semiring
 
 			bool subsumed = false;
 			while (itr != contacts.end())
-			{				
-				if (CGRSemiring(*itr) <= CGRSemiring(dom))
+			{
+				/*if (CGRSemiring(*itr) == CGRSemiring(dom))
+				{
+					if (itr->StorageNeed() < dom.StorageNeed())
+					{
+						CSC_Contact toFront = (*itr);
+						contacts.erase(itr);
+						contacts.push_front(toFront);
+						return *this;
+					}
+					else
+					{
+						subsumed = true;
+					}
+				}
+				// Remove the second part of the ands if we are not calculating storage needs
+				else */if ((CGRSemiring(*itr) <= CGRSemiring(dom)) && (itr->StorageNeed() <= dom.StorageNeed()))
 				{
 					// dom = (*itr);
 					CSC_Contact toFront = (*itr);
@@ -1237,7 +1414,7 @@ namespace Semiring
 					contacts.push_front(toFront);
 					return *this;
 				}
-				else if (CGRSemiring(*itr) >= CGRSemiring(dom))
+				else if ((CGRSemiring(*itr) >= CGRSemiring(dom)) && (itr->StorageNeed() >= dom.StorageNeed()))
 				{
 					subsumed = true;
 				}
