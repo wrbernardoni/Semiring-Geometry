@@ -18,6 +18,115 @@
 
 namespace Semiring
 {
+	class ExtendedDouble
+	{
+	private:
+		
+	public:
+		double n;
+		int inf;
+
+		ExtendedDouble(double d = 0.0, int i = 0)
+		{
+			n = d;
+			inf = i;
+		}
+
+		const ExtendedDouble operator+ (const ExtendedDouble& rhs) const
+		{
+			double np = n + rhs.n;
+			int i =  0;
+			if ((inf > 0) || (rhs.inf > 0))
+				i = 1;
+			else if ((inf < 0) || (rhs.inf < 0))
+				i = -1;
+
+			return ExtendedDouble(np, i);
+		}
+
+		const ExtendedDouble operator- (const ExtendedDouble& rhs) const
+		{
+			double np = n - rhs.n;
+			int i =  0;
+			if ((inf > 0) || (rhs.inf < 0))
+				i = 1;
+			else if ((inf < 0) || (rhs.inf > 0))
+				i = -1;
+			return ExtendedDouble(np, i);
+		}
+
+		const ExtendedDouble operator* (const ExtendedDouble& rhs) const
+		{
+			double np = n * rhs.n;
+			int i = 0;
+			if ((inf > 0) && (rhs.inf > 0))
+				i = 1;
+			else if ((inf > 0) && (rhs.inf < 0))
+				i = -1;
+			else if ((inf < 0) && (rhs.inf > 0))
+				i = -1;
+			else if ((inf < 0) && (rhs.inf < 0))
+				i = 1;
+			return ExtendedDouble(np, i);
+		}
+
+		friend std::ostream& operator<<(std::ostream& os, const ExtendedDouble& ts)
+		{
+			if (ts.inf == 0)
+			{
+				os << std::to_string(ts.n);
+			}
+			else if (ts.inf == -1)
+			{
+				os << "-inf";
+			}
+			else if (ts.inf == 1)
+			{
+				os << "inf";
+			}
+			return os;
+		}
+
+		inline friend bool operator==(const ExtendedDouble& lhs, const ExtendedDouble& rhs)
+		{
+			if (rhs.inf == 0)
+				return (lhs.n == rhs.n)&&(rhs.inf == lhs.inf);
+			else
+				return (rhs.inf == lhs.inf);
+		}
+
+		inline friend bool operator!=(const ExtendedDouble& lhs, const ExtendedDouble& rhs) 
+		{
+			return !(lhs == rhs);
+		}
+
+
+		inline friend bool operator<=(const ExtendedDouble& lhs, const ExtendedDouble& rhs)
+		{
+			if ((lhs.inf == 0) && (rhs.inf == 0))
+			{
+				return lhs.n <= rhs.n;
+			}
+
+			return (lhs.inf <= rhs.inf);
+		}
+
+		inline friend bool operator>=(const ExtendedDouble& lhs, const ExtendedDouble& rhs)
+		{
+			return rhs <= lhs;
+		}
+
+		inline friend bool operator<(const ExtendedDouble& lhs, const ExtendedDouble& rhs)
+		{
+			return (lhs <= rhs) && !(rhs <= rhs);
+		}
+
+		inline friend bool operator>(const ExtendedDouble& lhs, const ExtendedDouble& rhs)
+		{
+			return rhs < lhs;
+		}
+	};
+
 	class Contact
 	{
 	private:
@@ -418,11 +527,23 @@ namespace Semiring
 		}
 	public:
 
+		ExtendedDouble minEnd;
+		ExtendedDouble maxStart;
+		ExtendedDouble tau;
+		ExtendedDouble nu;
+		ExtendedDouble end;
+
+
 		friend bool operator<=(const CGRSemiring& lhs, const CGRSemiring& rhs);
 		friend class CGRSemiring;
 
 		CSC_Contact()
 		{
+			tau = ExtendedDouble(0, 1);
+			nu = ExtendedDouble(0,1);
+			minEnd = ExtendedDouble(0,1);
+			maxStart = ExtendedDouble(0,-1);
+			end = ExtendedDouble(0,1);
 			justContact = false;
 		}
 
@@ -430,6 +551,12 @@ namespace Semiring
 		{
 			lContact = c;
 			justContact = true;
+
+			minEnd = ExtendedDouble(0,1);
+			maxStart = ExtendedDouble(c.start,c.lInf ? -1 : 0);
+			end = ExtendedDouble(c.end,c.rInf ? 1 : 0);
+			tau = (end <= minEnd ? end : minEnd) - maxStart;
+			nu = ExtendedDouble(0,1);
 		}
 
 		CSC_Contact& operator= (const CSC_Contact& rhs)
@@ -437,6 +564,12 @@ namespace Semiring
 			lContact = rhs.lContact;
 			rContact = rhs.rContact;
 			justContact = rhs.justContact;
+
+			minEnd = rhs.minEnd;
+			maxStart = rhs.maxStart;
+			tau = rhs.tau;
+			nu = rhs.nu;
+			end = rhs.end;
 			return *this;
 		}
 
@@ -444,6 +577,12 @@ namespace Semiring
 		{
 			lContact = rhs;
 			justContact = true;
+
+			minEnd = ExtendedDouble(0,1);
+			maxStart = ExtendedDouble(rhs.start,rhs.lInf ? -1 : 0);
+			end = ExtendedDouble(rhs.end,rhs.rInf ? 1 : 0);
+			tau = (end <= minEnd ? end : minEnd) - maxStart;
+			nu = ExtendedDouble(0,1);
 			return *this;
 		}
 
@@ -454,6 +593,18 @@ namespace Semiring
 
 		CSC_Contact(Contact l, Contact r)
 		{
+			ExtendedDouble lStart = ExtendedDouble(l.start,l.lInf ? -1 : 0);
+			ExtendedDouble rStart = ExtendedDouble(r.start - l.delay,r.lInf ? -1 : 0);
+
+			ExtendedDouble lEnd = ExtendedDouble(l.end,l.rInf ? 1 : 0);
+			ExtendedDouble rEnd = ExtendedDouble(r.end - l.delay,r.rInf ? 1 : 0);
+
+			maxStart = (lStart >= rStart) ? lStart : rStart;
+			minEnd = lEnd;
+			end = rEnd;
+			tau = ((rEnd-maxStart) >= (lEnd - lStart))? (rEnd - maxStart) : (lEnd - lStart);
+			nu = lEnd - maxStart;
+
 			// std::cout << "Computing canonical form of " << l << "S" << r << std::endl;
 			if (l.empty || r.empty)
 			{
@@ -581,18 +732,48 @@ namespace Semiring
 			{
 				return CSC_Contact(Contact(true));
 			}
+			double d = Delay();
+			ExtendedDouble e = rhs.end - ExtendedDouble(d,0);
+			ExtendedDouble rS = rhs.maxStart - ExtendedDouble(d,0);
+			ExtendedDouble mS = (maxStart >= rS)? maxStart : rS;
+			// std::cout << maxStart << " " << rhs.maxStart << " " << d << " " << rS << " " << mS << std::endl;
+
+			ExtendedDouble lE = (end <= minEnd) ? end : minEnd;
+			ExtendedDouble rE = (rhs.end <= rhs.minEnd) ? (rhs.end - ExtendedDouble(d,0)) : (rhs.minEnd - ExtendedDouble(d,0));
+			ExtendedDouble mE = (lE <= rhs.minEnd - ExtendedDouble(d,0)) ? lE : rhs.minEnd - ExtendedDouble(d,0);
+			ExtendedDouble minTau = (tau <= rhs.tau) ? tau : rhs.tau;
+			ExtendedDouble t = (minTau <= (rE - maxStart)) ? minTau : (rE - maxStart);
+			ExtendedDouble n = mE - mS;
+
 
 			if (justContact && rhs.justContact)
 			{
-				return CSC_Contact(lContact * rhs.lContact);
+				auto c = CSC_Contact(lContact * rhs.lContact);
+				return c;
 			}
 			else if (justContact && !rhs.justContact)
 			{
-				return CSC_Contact(lContact * rhs.lContact, rhs.rContact);
+				auto c = CSC_Contact(lContact * rhs.lContact, rhs.rContact);
+				
+				c.tau = t;
+				c.nu = n;
+				c.maxStart = mS;
+				c.minEnd = mE;
+				c.end = e;
+
+				return c;
 			}
 			else if (!justContact && rhs.justContact)
 			{
-				return CSC_Contact(lContact, rContact * rhs.lContact);
+				auto c = CSC_Contact(lContact, rContact * rhs.lContact);
+
+				c.tau = t;
+				c.nu = n;
+				c.maxStart = mS;
+				c.minEnd = mE;
+				c.end = e;
+
+				return c;
 			}
 			else
 			{
@@ -603,41 +784,46 @@ namespace Semiring
 				}
 				Contact lConj(0, mid.end, 0, true, mid.rInf);
 				Contact rConj(mid.start, 0, mid.delay, mid.lInf, true);
-				return CSC_Contact(lContact * lConj, rConj * rhs.rContact);
+				auto c = CSC_Contact(lContact * lConj, rConj * rhs.rContact);
+
+				c.tau = t;
+				c.nu = n;
+				c.maxStart = mS;
+				c.minEnd = mE;
+				c.end = e;
+
+				return c;
+			}
+		}
+
+		const double Delay() const
+		{
+			if (justContact)
+			{
+				return lContact.delay;
+			}
+			else
+			{
+				return lContact.delay + rContact.delay;
 			}
 		}
 
 		// Returns -1 if the storage need is infinite
+		// Returns the storage needed to send any possible message	
 		const double StorageNeed()
 		{
-			if (justContact)
+			ExtendedDouble sN = std::max(ExtendedDouble(0,0), ExtendedDouble(0,0) - nu);
+			if (sN >= ExtendedDouble(0,1))
+				return -1;
+			else if (sN <= ExtendedDouble(0,-1))
 				return 0;
 			else
-			{
-				double bDif = rContact.start - lContact.start - rContact.delay;
-				double eDif = rContact.end - lContact.end - rContact.delay;
-				if (rContact.lInf || rContact.rInf)
-					return 0;
-				if (lContact.rInf && lContact.lInf)
-				{
-					return 0;
-				}
-				else if (lContact.lInf)
-				{
-					// eDif or 0
-					return std::max(0.0, eDif);
-				}
-				else if (lContact.rInf)
-				{
-					// bDif or 0
-					return std::max(0.0, bDif);
-				}
-				else
-				{
-					// max(min eDif, aDif, 0)
-					return std::max(0.0,std::min(bDif, eDif));
-				}
-			}
+				return sN.n;
+		}
+
+		const ExtendedDouble MaxThroughput()
+		{
+			return tau;
 		}
 
 		// If xInf > 0 then x is seen as positive infinity, if xInf < 0 then x is seen as -inf
@@ -749,6 +935,16 @@ namespace Semiring
 
 				// x and y finite
 
+				bool vBounds = ((x <= (rContact.end + rContact.delay)) || rContact.rInf)
+							&& ((x >= (rContact.start + rContact.delay)) || rContact.lInf);
+				bool hBounds = ((y <= (lContact.end)) || lContact.rInf)
+							&& ((y >= lContact.start) || lContact.lInf);
+				bool dBound = (x >= (y + lContact.delay + rContact.delay));
+
+				return vBounds && hBounds && dBound;
+
+				/*
+
 				// Check y is between c and e
 				if (!(lContact.lInf))
 				{
@@ -797,7 +993,9 @@ namespace Semiring
 					}
 				}
 
+
 				return true;
+				*/
 			}
 		}
 
@@ -874,14 +1072,17 @@ namespace Semiring
 			bool eInfinite = lhs.lContact.rInf;
 			double e = lhs.lContact.end;
 
-			bool aInfinite = lhs.rContact.lInf;
-			double a = lhs.rContact.delay + lhs.rContact.start;
+			bool aInfinite = lhs.rContact.lInf && lhs.lContact.lInf;
+			double a = std::max(lhs.rContact.delay + lhs.rContact.start,lhs.lContact.start + lhs.rContact.delay + lhs.lContact.delay);
 
 			bool bInfinite = lhs.rContact.rInf;
 			double b = lhs.rContact.delay + lhs.rContact.end;
 
 			bool dInfinite = lhs.rContact.lInf && lhs.lContact.lInf;
 			double d = std::min(std::max(lhs.rContact.start,lhs.lContact.start),lhs.lContact.end);
+
+			bool fInfinite = lhs.lContact.rInf;
+			double f = std::max(std::min(lhs.lContact.end + lhs.lContact.delay + lhs.rContact.delay, lhs.rContact.end + lhs.rContact.delay), lhs.rContact.start + lhs.rContact.delay);
 
 			if (!rhs.Contains(a,c,(aInfinite? -1 : 0), (cInfinite ? -1 : 0)))
 			{
@@ -903,7 +1104,7 @@ namespace Semiring
 				return false;
 			}
 
-			if (!rhs.Contains(e + lhs.rContact.delay,e,(eInfinite? 1 : 0), (eInfinite ? 1 : 0)))
+			if (!rhs.Contains(f,e,(fInfinite? 1 : 0), (eInfinite ? 1 : 0)))
 			{
 				return false;
 			}
@@ -1406,7 +1607,7 @@ namespace Semiring
 					}
 				}
 				// Remove the second part of the ands if we are not calculating storage needs
-				else */if ((CGRSemiring(*itr) <= CGRSemiring(dom)) && (itr->StorageNeed() <= dom.StorageNeed()))
+				else */if (((*itr) >= (dom)) && (itr->StorageNeed() <= dom.StorageNeed()) && (itr->MaxThroughput() >= dom.MaxThroughput()))
 				{
 					// dom = (*itr);
 					CSC_Contact toFront = (*itr);
@@ -1414,7 +1615,7 @@ namespace Semiring
 					contacts.push_front(toFront);
 					return *this;
 				}
-				else if ((CGRSemiring(*itr) >= CGRSemiring(dom)) && (itr->StorageNeed() >= dom.StorageNeed()))
+				else if (((*itr) <= (dom)) && (itr->StorageNeed() >= dom.StorageNeed()) && (itr->MaxThroughput() <= dom.MaxThroughput()))
 				{
 					subsumed = true;
 				}
@@ -1464,6 +1665,7 @@ namespace Semiring
 				}
 
 				os << c;
+				os << ":" << c.tau << ";" << c.nu ;//<< ";" << c.maxStart <<";" << c.minEnd <<";" << c.end;
 			}
 			os << "}";
 
